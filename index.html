@@ -1,0 +1,2674 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Tablero QA — Matriz de Casos de Prueba · Copetran 360</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      :root {
+        --bg: #0a101f;
+        --card: #141e33;
+        --card2: #1a2740;
+        --line: #263352;
+        --line2: #31405f;
+        --txt: #e8edf7;
+        --mut: #8fa0bd;
+        --acc: #3987e5;
+        --ok: #0ca30c;
+        --okTxt: #4ade80;
+        --bad: #d03b3b;
+        --badTxt: #f87171;
+        --warn: #fab219;
+        --warnTxt: #fbbf24;
+        --serio: #ec835a;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(1100px 600px at 12% -8%, #16244a 0%, transparent 60%),
+          radial-gradient(900px 500px at 108% 8%, #122241 0%, transparent 55%),
+          var(--bg);
+        color: var(--txt);
+        font-family: "Segoe UI", system-ui, sans-serif;
+        padding: 18px 22px 40px;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 1460px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 17.5px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        color: var(--mut);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+      button {
+        cursor: pointer;
+      }
+      select,
+      input,
+      button {
+        background: var(--card2);
+        color: var(--txt);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        outline: none;
+        font-family: inherit;
+      }
+      button:hover {
+        border-color: var(--acc);
+      }
+      .card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%), var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        box-shadow: 0 10px 30px rgba(3, 8, 20, 0.35);
+      }
+
+      /* ---------- encabezado ---------- */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #1c5cab, #3987e5 60%, #6da7ec);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+        box-shadow: 0 6px 18px rgba(57, 135, 229, 0.35);
+        flex: none;
+      }
+      .live {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 7px 9px 7px 14px;
+        font-size: 12px;
+        flex-wrap: wrap;
+      }
+      .live button {
+        padding: 5px 11px;
+        border-radius: 999px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--mut);
+        flex: none;
+      }
+      .dot.ok {
+        background: var(--okTxt);
+        box-shadow: 0 0 8px var(--okTxt);
+        animation: pulse 1.6s infinite;
+      }
+      .dot.err {
+        background: var(--badTxt);
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      /* ---------- navegación ---------- */
+      .tabs {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 0;
+        margin-bottom: 14px;
+        background: linear-gradient(180deg, var(--bg) 75%, transparent);
+      }
+      .tab-btn {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--mut);
+        font-size: 13px;
+        font-weight: 600;
+        padding: 8px 18px;
+      }
+      .tab-btn.on {
+        color: #fff;
+        background: linear-gradient(135deg, #1c5cab, #3987e5);
+        border-color: transparent;
+        box-shadow: 0 4px 14px rgba(57, 135, 229, 0.35);
+      }
+      .tab-btn .badge {
+        background: rgba(255, 255, 255, 0.16);
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-size: 11px;
+        margin-left: 6px;
+      }
+      .tab-btn:not(.on) .badge {
+        background: var(--card2);
+        border: 1px solid var(--line);
+      }
+      .modo {
+        margin-left: auto;
+        font-size: 11.5px;
+        color: var(--mut);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 12px;
+        background: var(--card);
+        white-space: nowrap;
+      }
+      .modo b {
+        color: var(--okTxt);
+        font-weight: 600;
+      }
+
+      .statusbox {
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 12px;
+        margin-bottom: 12px;
+        display: none;
+      }
+      .statusbox.warn {
+        display: block;
+        background: #451a03;
+        border: 1px solid #92400e;
+        color: #fde68a;
+      }
+      .statusbox.err {
+        display: block;
+        background: #450a0a;
+        border: 1px solid #991b1b;
+        color: #fecaca;
+      }
+
+      /* ---------- héroe ---------- */
+      .hero {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      .ringwrap {
+        position: relative;
+        width: 158px;
+        height: 158px;
+        flex: none;
+      }
+      .ring circle {
+        fill: none;
+        stroke-width: 13;
+      }
+      .ringTrack {
+        stroke: var(--line);
+      }
+      .ringVal {
+        stroke: var(--ok);
+        stroke-linecap: round;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+        transition: stroke-dashoffset 0.7s ease, stroke 0.4s;
+      }
+      .ringtxt {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+      }
+      .ringtxt b {
+        font-size: 34px;
+        font-weight: 700;
+      }
+      .ringtxt span {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mut);
+      }
+      .herostats {
+        flex: 1;
+        min-width: 300px;
+      }
+      .hrow {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px 24px;
+      }
+      .hstat .hnum {
+        font-size: 26px;
+        font-weight: 650;
+        display: block;
+      }
+      .hstat .hlab {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--mut);
+      }
+      .hstat .hsub {
+        display: block;
+        font-size: 11px;
+        color: var(--mut);
+        margin-top: 2px;
+      }
+      .herofoot {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        color: var(--mut);
+        font-size: 12px;
+      }
+      .herofoot b {
+        color: var(--txt);
+        font-weight: 600;
+      }
+
+      /* ---------- secciones ---------- */
+      .secTitle {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--mut);
+        margin: 4px 2px 10px;
+      }
+      .secTitle .secHint {
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        margin-left: 8px;
+        opacity: 0.8;
+      }
+
+      /* ---------- tarjetas de área ---------- */
+      .areas {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(252px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .acard {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 45%), var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      }
+      .acard:hover {
+        transform: translateY(-2px);
+        border-color: var(--acc);
+        box-shadow: 0 10px 26px rgba(57, 135, 229, 0.18);
+      }
+      .acard .ahead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .acard .aname {
+        font-size: 13px;
+        font-weight: 650;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .acard .apct {
+        font-size: 19px;
+        font-weight: 700;
+        flex: none;
+      }
+      .segbar {
+        display: flex;
+        gap: 2px;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 11px 0 10px;
+        background: transparent;
+      }
+      .segbar span {
+        min-width: 3px;
+        border-radius: 2px;
+      }
+      .acard .acounts {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 11.5px;
+        color: var(--mut);
+      }
+      .acard .acounts b {
+        color: var(--txt);
+        font-weight: 600;
+      }
+      .pip {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: baseline;
+      }
+      .acard .atipos {
+        margin-top: 9px;
+        font-size: 11px;
+        color: var(--mut);
+        line-height: 1.7;
+      }
+      .acard .atipos b {
+        color: var(--txt);
+        font-weight: 600;
+      }
+      .acard .afoot {
+        margin-top: 7px;
+        font-size: 11px;
+        color: var(--mut);
+      }
+      .acard .afoot.ok {
+        color: var(--okTxt);
+      }
+
+      /* ---------- panel de desglose de área ---------- */
+      .modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(5, 9, 18, 0.68);
+        backdrop-filter: blur(3px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 22px;
+      }
+      .modal-card {
+        width: min(740px, 100%);
+        max-height: 88vh;
+        overflow: auto;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%), var(--card);
+        border: 1px solid var(--line2);
+        border-radius: 16px;
+        padding: 20px 22px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+      }
+      .modal-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .modal-head .mtitle {
+        font-size: 17px;
+        font-weight: 700;
+      }
+      .modal-head .msub {
+        font-size: 12px;
+        color: var(--mut);
+        margin-top: 2px;
+      }
+      .mclose {
+        background: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        color: var(--mut);
+        font-size: 13px;
+        flex: none;
+      }
+      .mclose:hover {
+        color: var(--badTxt);
+        border-color: var(--badTxt);
+      }
+      .mstats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+        gap: 8px 14px;
+        margin: 12px 0 4px;
+      }
+      .mstat .v {
+        font-size: 19px;
+        font-weight: 650;
+      }
+      .mstat .l {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--mut);
+      }
+      .msec {
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mut);
+        margin: 18px 0 6px;
+      }
+      .mrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 2px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .mrow:last-child {
+        border-bottom: none;
+      }
+      .mrow-click {
+        cursor: pointer;
+        border-radius: 8px;
+      }
+      .mrow-click:hover {
+        background: var(--card2);
+      }
+      .estChip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0 16px 8px 0;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .estChip b {
+        font-size: 14px;
+      }
+      .estChip:hover .tag {
+        outline: 1px solid var(--acc);
+      }
+      .mrow .tag {
+        min-width: 128px;
+        text-align: center;
+      }
+      .mrow .mtot {
+        min-width: 38px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-weight: 650;
+      }
+      .mrow .segbar {
+        width: 130px;
+        margin: 0;
+        flex: none;
+        height: 7px;
+      }
+      .mrow .mdet {
+        color: var(--mut);
+        flex: 1;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .modal-foot {
+        margin-top: 16px;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .modal-foot button {
+        background: linear-gradient(135deg, #1c5cab, #3987e5);
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        padding: 9px 18px;
+        border-radius: 999px;
+      }
+
+      /* ---------- grilla inferior panorama ---------- */
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 980px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .cardHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .cardHead h3 {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mut);
+      }
+      .seg {
+        display: flex;
+        background: var(--card2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .seg button {
+        border: none;
+        background: none;
+        color: var(--mut);
+        padding: 5px 13px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .seg button.on {
+        background: var(--acc);
+        color: #fff;
+      }
+      .chart-box {
+        position: relative;
+        height: 285px;
+      }
+      .chart-box canvas {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------- equipo ---------- */
+      .trow {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 8px 8px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .trow:hover {
+        background: var(--card2);
+      }
+      .avatar {
+        width: 31px;
+        height: 31px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #28457e, #3987e5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 11.5px;
+        flex: none;
+      }
+      .trow .tinfo {
+        flex: 1;
+        min-width: 0;
+      }
+      .trow .tname {
+        font-size: 12.5px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .trow .tsub {
+        font-size: 11px;
+        color: var(--mut);
+      }
+      .trow .segbar {
+        width: 92px;
+        margin: 0;
+        flex: none;
+        height: 7px;
+      }
+      .trow .tpend {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--badTxt);
+        min-width: 52px;
+        text-align: right;
+        flex: none;
+      }
+      .trow .tpend.cero {
+        color: var(--okTxt);
+      }
+      .verTodos {
+        width: 100%;
+        margin-top: 8px;
+        background: none;
+        border: 1px dashed var(--line2);
+        color: var(--mut);
+      }
+
+      /* ---------- tareas ---------- */
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+      }
+      .chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 12px;
+        background: var(--card2);
+        border: 1px solid var(--line);
+        color: var(--mut);
+      }
+      .chip.on {
+        background: var(--acc);
+        border-color: transparent;
+        color: #fff;
+        font-weight: 600;
+      }
+      #fTxt {
+        flex: 1;
+        min-width: 180px;
+      }
+      .advfil {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+      }
+      .activefil {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .fchip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: rgba(57, 135, 229, 0.14);
+        border: 1px solid rgba(57, 135, 229, 0.5);
+        color: var(--txt);
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 12px;
+        max-width: 380px;
+      }
+      .fchip span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fchip button {
+        background: none;
+        border: none;
+        color: var(--mut);
+        padding: 0 2px;
+        font-size: 13px;
+        line-height: 1;
+      }
+      .fchip button:hover {
+        color: var(--badTxt);
+      }
+
+      /* ---------- multi-select ---------- */
+      .msel {
+        position: relative;
+      }
+      .msel-btn .badge {
+        background: var(--acc);
+        color: #fff;
+        border-radius: 9px;
+        padding: 0 7px;
+        font-size: 11px;
+        margin-left: 5px;
+        font-weight: 600;
+      }
+      .msel-btn .caret {
+        color: var(--mut);
+        margin-left: 6px;
+        font-size: 10px;
+      }
+      .msel-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        z-index: 60;
+        min-width: 230px;
+        max-height: 280px;
+        overflow: auto;
+        background: var(--card2);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 6px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+      }
+      .msel.open .msel-panel {
+        display: block;
+      }
+      .msel-search {
+        width: 100%;
+        margin-bottom: 6px;
+        padding: 6px 9px;
+        border-radius: 7px;
+        font-size: 12px;
+      }
+      .quitarFiltro {
+        background: none;
+        border: 1px solid var(--line2);
+        border-radius: 999px;
+        color: var(--mut);
+        padding: 1px 9px;
+        font-size: 11px;
+        margin-left: 4px;
+      }
+      .quitarFiltro:hover {
+        color: var(--badTxt);
+        border-color: var(--badTxt);
+      }
+      .msel-panel .msel-tools {
+        display: flex;
+        justify-content: space-between;
+        padding: 2px 6px 8px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 4px;
+      }
+      .msel-panel .msel-tools button {
+        border: none;
+        background: none;
+        color: var(--acc);
+        padding: 0;
+        font-size: 11.5px;
+      }
+      .msel-panel label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 12.5px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .msel-panel label:hover {
+        background: var(--card);
+      }
+      .msel-panel input[type="checkbox"] {
+        accent-color: var(--acc);
+        width: 14px;
+        height: 14px;
+        padding: 0;
+        flex: none;
+      }
+
+      /* ---------- tabla ---------- */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th,
+      td {
+        padding: 7px 9px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--mut);
+        position: sticky;
+        top: 0;
+        background: var(--card);
+        user-select: none;
+        white-space: nowrap;
+        z-index: 5;
+      }
+      th[data-k] {
+        cursor: pointer;
+      }
+      th[data-k]:hover {
+        color: var(--txt);
+      }
+      tbody tr:hover {
+        background: var(--card2);
+      }
+      td.num,
+      th.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .tbl-wrap {
+        max-height: 600px;
+        overflow: auto;
+      }
+      .obs {
+        max-width: 460px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      tr.open .obs {
+        white-space: normal;
+        overflow: visible;
+      }
+      .hint {
+        color: var(--mut);
+        font-size: 11.5px;
+        margin: 0 0 10px;
+      }
+      .tag {
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .t-ERROR {
+        background: #7f1d1d;
+        color: #fecaca;
+      }
+      .t-NOVEDAD {
+        background: #78350f;
+        color: #fde68a;
+      }
+      .t-MEJORA {
+        background: #1e3a8a;
+        color: #bfdbfe;
+      }
+      .t-PARAMETRIZACION {
+        background: #3b0764;
+        color: #e9d5ff;
+      }
+      .t-OTRO {
+        background: #334155;
+        color: #e2e8f0;
+      }
+      .e-RESUELTO {
+        background: #14532d;
+        color: #bbf7d0;
+      }
+      .e-PENDIENTE {
+        background: #7f1d1d;
+        color: #fecaca;
+      }
+      .e-PENDIENTE-INFO {
+        background: #78350f;
+        color: #fde68a;
+      }
+      .e-EN-PROCESO {
+        background: #1e3a8a;
+        color: #bfdbfe;
+      }
+      #masFilas button {
+        width: 100%;
+        margin-top: 10px;
+        background: none;
+        border: 1px dashed var(--line2);
+        color: var(--mut);
+      }
+      @media (max-width: 800px) {
+        .obs {
+          max-width: 250px;
+        }
+        .hero {
+          gap: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">QA</div>
+          <div>
+            <h1>Matriz de Casos de Prueba — Copetran 360</h1>
+            <div class="sub">
+              Excluye filas "SIN NOVEDAD" · <span id="srcInfo">conectando…</span>
+            </div>
+          </div>
+        </div>
+        <div class="live">
+          <span class="dot" id="liveDot"></span>
+          <span id="liveTxt">Cargando…</span>
+          <button onclick="conectarExcelLocal()">📂 Excel local</button>
+          <button onclick="cargar(true)">↻ Actualizar</button>
+          <input
+            type="file"
+            id="filePick"
+            accept=".xlsx,.xlsm"
+            style="display: none" />
+        </div>
+      </header>
+
+      <div class="statusbox" id="statusbox"></div>
+
+      <nav class="tabs">
+        <button class="tab-btn on" id="tabPanorama" onclick="setView('panorama')">
+          Panorama
+        </button>
+        <button class="tab-btn" id="tabTareas" onclick="setView('tareas')">
+          Tareas <span class="badge" id="tabTareasN">0</span>
+        </button>
+        <span
+          id="filtroGlobal"
+          style="margin-left: 10px"
+          title="Filtra TODO el tablero (Panorama y Tareas) por responsable"></span>
+        <span class="modo" id="modoChip">detectando modo…</span>
+      </nav>
+
+      <!-- ================= PANORAMA ================= -->
+      <section id="viewPanorama">
+        <div class="card hero">
+          <div class="ringwrap">
+            <svg class="ring" viewBox="0 0 160 160" width="158" height="158">
+              <circle class="ringTrack" cx="80" cy="80" r="64"></circle>
+              <circle
+                class="ringVal"
+                id="ringVal"
+                cx="80"
+                cy="80"
+                r="64"
+                stroke-dasharray="402.12"
+                stroke-dashoffset="402.12"></circle>
+            </svg>
+            <div class="ringtxt">
+              <b id="heroPct">—</b><span>avance global</span>
+            </div>
+          </div>
+          <div class="herostats">
+            <div class="hrow">
+              <div class="hstat">
+                <span class="hnum" style="color: var(--badTxt)" id="hPend">—</span>
+                <span class="hlab">Pendientes</span>
+                <span class="hsub" id="hPendOld"></span>
+              </div>
+              <div class="hstat">
+                <span class="hnum" style="color: var(--acc)" id="hProc">—</span>
+                <span class="hlab">En proceso</span>
+                <span class="hsub">&nbsp;</span>
+              </div>
+              <div class="hstat">
+                <span class="hnum" style="color: var(--okTxt)" id="hRes">—</span>
+                <span class="hlab">Resueltos</span>
+                <span class="hsub" id="hResSub"></span>
+              </div>
+              <div class="hstat">
+                <span class="hnum" id="hProm">—</span>
+                <span class="hlab">Prom. días solución</span>
+                <span class="hsub">&nbsp;</span>
+              </div>
+            </div>
+            <div class="herofoot" id="heroFoot"></div>
+          </div>
+        </div>
+
+        <h2 class="secTitle">
+          Áreas
+          <span class="secHint">— clic en un área para ver su desglose completo</span>
+        </h2>
+        <div class="areas" id="areasGrid"></div>
+
+        <div class="card" style="margin-bottom: 12px">
+          <div class="cardHead">
+            <h3>Desglose general por tipo</h3>
+            <span class="hint" style="margin: 0">clic en un tipo o estado para ver sus tareas</span>
+          </div>
+          <div id="desgTipos"></div>
+          <div class="msec">Por estado</div>
+          <div id="desgEstados" style="padding: 4px 2px 0"></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="cardHead">
+              <h3>Tendencias</h3>
+              <div class="seg" id="segChart">
+                <button data-c="act" class="on">Actividad</button>
+                <button data-c="back">Backlog</button>
+                <button data-c="tipo">Tipos</button>
+                <button data-c="hist" id="segHist" style="display: none">
+                  Histórico BD
+                </button>
+              </div>
+            </div>
+            <div class="chart-box">
+              <canvas id="chAct"></canvas>
+              <canvas id="chBack" style="display: none"></canvas>
+              <canvas id="chTipo" style="display: none"></canvas>
+              <canvas id="chHist" style="display: none"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="cardHead">
+              <h3>Equipo</h3>
+              <span class="hint" style="margin: 0">clic para ver sus tareas</span>
+            </div>
+            <div id="equipo"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAREAS ================= -->
+      <section id="viewTareas" style="display: none">
+        <div class="card toolbar">
+          <div class="chips" id="chipsEstado">
+            <button class="chip on" data-b="">Todas</button>
+            <button class="chip" data-b="PEND">Pendientes</button>
+            <button class="chip" data-b="PROC">En proceso</button>
+            <button class="chip" data-b="RES">Resueltas</button>
+          </div>
+          <input id="fTxt" placeholder="Buscar en Nº, módulo u observaciones…" />
+          <button id="btnFiltros">Filtros ▾</button>
+          <button onclick="resetFiltros()">Limpiar</button>
+          <button onclick="exportCSV()">⬇ CSV</button>
+        </div>
+        <div class="card advfil" id="advFil" style="display: none"></div>
+        <div class="activefil" id="activeFil"></div>
+
+        <div class="card">
+          <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--mut); margin-bottom: 8px">
+            Detalle de casos (<span id="cnt">0</span>)
+          </h3>
+          <div class="hint">
+            Clic en un encabezado para ordenar · clic en una fila para ver la
+            observación completa.
+          </div>
+          <div class="tbl-wrap">
+            <table id="tbl">
+              <thead>
+                <tr>
+                  <th data-k="n">Nº</th>
+                  <th data-k="a">Área</th>
+                  <th data-k="p">Módulo · Proceso</th>
+                  <th data-k="t">Tipo</th>
+                  <th data-k="r">Responsable</th>
+                  <th data-k="e">Estado</th>
+                  <th data-k="fp">Reportado</th>
+                  <th data-k="fc">Resuelto</th>
+                  <th data-k="dias" class="num">Días</th>
+                  <th data-k="o">Observación</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="masFilas"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- panel de desglose por área -->
+    <div class="modal" id="modalArea" style="display: none">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div>
+            <div class="mtitle" id="maTitle"></div>
+            <div class="msub" id="maSub"></div>
+          </div>
+          <button class="mclose" onclick="cerrarArea()" title="Cerrar (Esc)">
+            ✕
+          </button>
+        </div>
+        <div id="maBody"></div>
+        <div class="modal-foot">
+          <button id="maVer">Ver las tareas de esta área →</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ============================================================
+   CONFIGURACIÓN
+   ============================================================
+   - SHARE_LINK: vínculo de SharePoint ("Cualquier persona con el
+     vínculo") — hoy exige login, por eso la fuente principal es
+     el Excel local + la base de datos SQLite del servidor.
+   - API_LOCAL: dirección del servidor local (servidor.py).
+============================================================ */
+      const CONFIG = {
+        SHARE_LINK:
+          "https://copetran2-my.sharepoint.com/:x:/g/personal/jsistemas_copetran_com/IQD7a8fU1X-HSLjWDpiizdKSAaW9Q-q1uSLgYHpBIkMqaDk?e=aK7FtP",
+        POLL_SECONDS: 60,
+        FALLBACK_LOCAL: "matriz.xlsx",
+        API_LOCAL: "http://127.0.0.1:8765",
+      };
+
+      /* ---------- utilidades ---------- */
+      function esc(s) {
+        return String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+      const fmt = (n) => Number(n || 0).toLocaleString("es-CO");
+      const esResuelto = (d) => d.e === "RESUELTO";
+      const esProceso = (d) => d.e === "EN PROCESO";
+      const esPendiente = (d) => !esResuelto(d) && !esProceso(d);
+      function debounce(fn, ms) {
+        let t;
+        return (...a) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...a), ms);
+        };
+      }
+      function hashBuf(buf) {
+        const u = new Uint8Array(buf);
+        let h = 2166136261;
+        const paso = Math.max(1, Math.floor(u.length / 4096));
+        for (let i = 0; i < u.length; i += paso) {
+          h ^= u[i];
+          h = (h * 16777619) >>> 0;
+        }
+        return "b:" + u.length + ":" + h.toString(36);
+      }
+
+      /* ---------- Base de datos (API del servidor SQLite) ---------- */
+      let API = null; // base URL cuando servidor.py está corriendo
+      let MODO = "solo"; // 'bd' | 'solo'
+      async function probeApi() {
+        const candidatas = (
+          location.protocol.startsWith("http") ? [location.origin] : []
+        ).concat([CONFIG.API_LOCAL]);
+        for (const base of candidatas) {
+          try {
+            const ctl = new AbortController();
+            const t = setTimeout(() => ctl.abort(), 1500);
+            const r = await fetch(base + "/api/estado", {
+              signal: ctl.signal,
+              cache: "no-store",
+            });
+            clearTimeout(t);
+            if (r.ok) {
+              const j = await r.json();
+              if (j && j.servicio === "tablero-qa") {
+                API = base;
+                MODO = "bd";
+                return;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+      async function apiGet(p) {
+        const r = await fetch(API + p, { cache: "no-store" });
+        if (!r.ok) throw new Error("API " + r.status);
+        return r.json();
+      }
+      async function apiPost(p, body) {
+        const hacer = () =>
+          fetch(API + p, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(localStorage.tableroToken
+                ? { "X-Token": localStorage.tableroToken }
+                : {}),
+            },
+            body: JSON.stringify(body),
+          });
+        let r = await hacer();
+        if (r.status === 401) {
+          // el servidor exige token de carga (despliegue en internet)
+          const t = prompt(
+            "Este servidor exige un token para recibir datos.\nEscribe el token de carga:",
+          );
+          if (t) {
+            localStorage.tableroToken = t.trim();
+            r = await hacer();
+          }
+        }
+        if (!r.ok) throw new Error("API " + r.status);
+        return r.json();
+      }
+
+      /* ---------- almacenamiento del navegador (modo autónomo) ---------- */
+      const idb = {
+        open() {
+          return new Promise((res, rej) => {
+            const rq = indexedDB.open("tableroQA", 1);
+            rq.onupgradeneeded = () => rq.result.createObjectStore("kv");
+            rq.onsuccess = () => res(rq.result);
+            rq.onerror = () => rej(rq.error);
+          });
+        },
+        async get(k) {
+          const db = await this.open();
+          return new Promise((res, rej) => {
+            const rq = db.transaction("kv").objectStore("kv").get(k);
+            rq.onsuccess = () => res(rq.result);
+            rq.onerror = () => rej(rq.error);
+          });
+        },
+        async set(k, v) {
+          const db = await this.open();
+          return new Promise((res, rej) => {
+            const tx = db.transaction("kv", "readwrite");
+            tx.objectStore("kv").put(v, k);
+            tx.oncomplete = () => res();
+            tx.onerror = () => rej(tx.error);
+          });
+        },
+      };
+
+      /* ---------- Fuente local: archivo .xlsx del disco ---------- */
+      let localHandle = null; // FileSystemFileHandle — se relee cada ciclo
+      let localFile = null; // File suelto (input/arrastre)
+
+      async function conectarExcelLocal() {
+        if (window.showOpenFilePicker) {
+          try {
+            const [h] = await showOpenFilePicker({
+              types: [
+                {
+                  description: "Excel",
+                  accept: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                      [".xlsx", ".xlsm"],
+                  },
+                },
+              ],
+            });
+            localHandle = h;
+            localFile = null;
+            META.fp = null;
+            try {
+              await idb.set("handle", h);
+            } catch (e) {}
+            cargar(true);
+            return;
+          } catch (e) {
+            if (e.name === "AbortError") return;
+          }
+        }
+        document.getElementById("filePick").click();
+      }
+      document.getElementById("filePick").addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        if (f) {
+          localFile = f;
+          localHandle = null;
+          META.fp = null;
+          cargar(true);
+        }
+      });
+      addEventListener("dragover", (e) => e.preventDefault());
+      addEventListener("drop", async (e) => {
+        e.preventDefault();
+        const it = e.dataTransfer.items && e.dataTransfer.items[0];
+        if (!it) return;
+        if (it.getAsFileSystemHandle) {
+          const h = await it.getAsFileSystemHandle();
+          if (h && h.kind === "file") {
+            localHandle = h;
+            localFile = null;
+            META.fp = null;
+            try {
+              await idb.set("handle", h);
+            } catch (e2) {}
+            cargar(true);
+            return;
+          }
+        }
+        const f = it.getAsFile && it.getAsFile();
+        if (f) {
+          localFile = f;
+          localHandle = null;
+          META.fp = null;
+          cargar(true);
+        }
+      });
+      async function restaurarLocal() {
+        try {
+          const h = await idb.get("handle");
+          if (!h) return;
+          if ((await h.queryPermission({ mode: "read" })) === "granted") {
+            localHandle = h;
+            return;
+          }
+          const sb = document.getElementById("statusbox");
+          sb.className = "statusbox warn";
+          sb.innerHTML = `📂 La última vez usaste el Excel local "${esc(h.name)}". <button onclick="reconectarLocal()" style="padding:3px 10px;margin-left:8px">Volver a conectarlo</button>`;
+        } catch (e) {}
+      }
+      async function reconectarLocal() {
+        try {
+          const h = await idb.get("handle");
+          if (
+            h &&
+            (await h.requestPermission({ mode: "read" })) === "granted"
+          ) {
+            localHandle = h;
+            META.fp = null;
+            cargar(true);
+          }
+        } catch (e) {}
+      }
+
+      /* ---------- obtención del Excel con detección de cambios ---------- */
+      function downloadUrl() {
+        let u = CONFIG.SHARE_LINK.trim();
+        if (!u || u.startsWith("PEGAR")) return null;
+        if (u.includes("download.aspx")) return u;
+        u = u.split("#")[0];
+        return u + (u.includes("?") ? "&" : "?") + "download=1";
+      }
+      const PROXIES = [
+        (u) => u,
+        (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+        (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+      ];
+      // Un .xlsx real es un ZIP: SIEMPRE empieza con 'PK'. Cualquier otra cosa
+      // (página de login de Microsoft, HTML de un proxy, error) se rechaza.
+      function esXlsx(buf) {
+        const u = new Uint8Array(buf);
+        return u.length > 4 && u[0] === 0x50 && u[1] === 0x4b;
+      }
+      /* Devuelve {estado:'datos'|'sin-cambios'|'sin-fuente', buf?, src?, fp?} */
+      async function leerFuente() {
+        if (localHandle) {
+          try {
+            const f = await localHandle.getFile();
+            const fp = "h:" + f.size + ":" + f.lastModified;
+            const src = `archivo local "${f.name}"`;
+            if (fp === META.fp) return { estado: "sin-cambios", src, fp };
+            return { estado: "datos", buf: await f.arrayBuffer(), src, fp };
+          } catch (e) {
+            if (e.name === "NotAllowedError") {
+              localHandle = null;
+              restaurarLocal();
+            } else if (e.name === "NotFoundError") {
+              // borraron/reemplazaron el archivo (típico al re-descargar)
+              localHandle = null;
+              const sb = document.getElementById("statusbox");
+              sb.className = "statusbox warn";
+              sb.dataset.tipo = "reconectar";
+              sb.innerHTML = `📂 El Excel conectado ya no está en esa ruta (¿lo borraste al descargar uno nuevo?). <button onclick="conectarExcelLocal()" style="padding:3px 10px;margin-left:8px">Conectar el archivo de nuevo</button>`;
+            }
+            // el archivo local falló en este ciclo: NO caer a la red
+            // (los proxies devuelven páginas de login, no el Excel)
+            return { estado: "sin-fuente" };
+          }
+        }
+        if (localFile) {
+          try {
+            const buf = await localFile.arrayBuffer();
+            const fp = hashBuf(buf);
+            const src = `archivo local "${localFile.name}" (carga manual)`;
+            if (fp === META.fp) return { estado: "sin-cambios", src, fp };
+            return { estado: "datos", buf, src, fp };
+          } catch (e) {
+            localFile = null; // el archivo cambió en disco: re-seleccionar
+            return { estado: "sin-fuente" };
+          }
+        }
+        const base = downloadUrl();
+        if (base) {
+          for (const wrap of PROXIES) {
+            try {
+              const r = await fetch(
+                wrap(base) +
+                  (wrap(base).includes("?") ? "&" : "?") +
+                  "_ts=" +
+                  Date.now(),
+                { cache: "no-store" },
+              );
+              if (r.ok) {
+                const buf = await r.arrayBuffer();
+                if (buf.byteLength > 500 && esXlsx(buf)) {
+                  const fp = hashBuf(buf);
+                  const src =
+                    wrap(base) === base
+                      ? "SharePoint (directo)"
+                      : "SharePoint (vía proxy)";
+                  if (fp === META.fp) return { estado: "sin-cambios", src, fp };
+                  return { estado: "datos", buf, src, fp };
+                }
+              }
+            } catch (e) {}
+          }
+        }
+        try {
+          const r = await fetch(CONFIG.FALLBACK_LOCAL + "?_ts=" + Date.now(), {
+            cache: "no-store",
+          });
+          if (r.ok) {
+            const buf = await r.arrayBuffer();
+            if (buf.byteLength > 500 && esXlsx(buf)) {
+              const fp = hashBuf(buf);
+              if (fp === META.fp)
+                return { estado: "sin-cambios", src: "copia del repo", fp };
+              return { estado: "datos", buf, src: "copia del repo", fp };
+            }
+          }
+        } catch (e) {}
+        return { estado: "sin-fuente" };
+      }
+
+      /* ---------- Parseo flexible del Excel ---------- */
+      const COLMAP = [
+        {
+          k: "n",
+          re: /^(n[ºo°]?\.?\s*(prueba|caso|de caso)?|caso|id|consecutivo|c[oó]digo)$/i,
+        },
+        { k: "a", re: /(oficina\s+(respo|repo)|^oficina$|área|area)/i },
+        { k: "mod", re: /^m[oó]dulo/i },
+        { k: "proc", re: /^proceso$/i },
+        { k: "t", re: /(tipo|clasificaci)/i },
+        { k: "r", re: /^responsable/i },
+        { k: "e2", re: /estado.*correcci/i },
+        { k: "e", re: /(estado|status|situaci)/i },
+        { k: "fc", re: /fecha.*(correcci|soluci|resuel|cierre)/i },
+        { k: "fp", re: /fecha.*(prueba|reporte|registro|creaci)|reportado/i },
+        { k: "o2", re: /observaci.*correcci/i },
+        { k: "o", re: /(observaci|descripci|detalle|comentario)/i },
+        { k: "ok", re: /^ok\.?$/i },
+      ];
+      function normTxt(v) {
+        return v == null ? "" : String(v).replace(/\s+/g, " ").trim();
+      }
+      function normFecha(v) {
+        if (v == null || v === "") return null;
+        if (typeof v === "number") {
+          const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+          return isNaN(d) ? null : d.toISOString().slice(0, 10);
+        }
+        const s = normTxt(v);
+        let m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return m[0];
+        m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+        if (m) {
+          let y = m[3].length === 2 ? "20" + m[3] : m[3];
+          return `${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        }
+        const d = new Date(s);
+        return isNaN(d) ? null : d.toISOString().slice(0, 10);
+      }
+      function normEstado(v) {
+        const s = normTxt(v).toUpperCase();
+        if (!s) return "PENDIENTE";
+        if (
+          s.includes("RESUEL") ||
+          s.includes("CERRAD") ||
+          s.includes("SOLUCION")
+        )
+          return "RESUELTO";
+        if (s.includes("INFO")) return "PENDIENTE INFO";
+        if (
+          s.includes("PROCESO") ||
+          s.includes("CURSO") ||
+          s.includes("DESARROLLO") ||
+          s.includes("REVISION") ||
+          s.includes("REVISIÓN")
+        )
+          return "EN PROCESO";
+        return "PENDIENTE";
+      }
+      function normTipo(v) {
+        const s = normTxt(v).toUpperCase();
+        if (s.includes("ERROR")) return "ERROR";
+        if (s.includes("NOVEDAD")) return "NOVEDAD";
+        if (s.includes("MEJORA")) return "MEJORA";
+        if (s.includes("PARAMETRIZA")) return "PARAMETRIZACION";
+        return s || "OTRO";
+      }
+      function parseWorkbook(buf) {
+        const wb = XLSX.read(buf, { type: "array", cellDates: false });
+        const out = [];
+        let pruebasOk = 0;
+        for (const name of wb.SheetNames) {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {
+            header: 1,
+            defval: null,
+          });
+          if (!rows.length) continue;
+          let hIdx = -1,
+            map = {};
+          for (let i = 0; i < Math.min(rows.length, 12); i++) {
+            const cand = {};
+            (rows[i] || []).forEach((cell, ci) => {
+              const txt = normTxt(cell);
+              if (!txt) return;
+              for (const c of COLMAP)
+                if (cand[c.k] === undefined && c.re.test(txt)) cand[c.k] = ci;
+            });
+            if (Object.keys(cand).length >= 3) {
+              hIdx = i;
+              map = cand;
+              break;
+            }
+          }
+          if (hIdx < 0) continue;
+          for (let i = hIdx + 1; i < rows.length; i++) {
+            const row = rows[i] || [];
+            const get = (k) => (map[k] !== undefined ? row[map[k]] : null);
+            const n = normTxt(get("n")),
+              tRaw = normTxt(get("t"));
+            const e1 = normTxt(get("e")),
+              e2 = normTxt(get("e2")),
+              oki = normTxt(get("ok"));
+            let o = normTxt(get("o"));
+            if (!n && !tRaw && !o && !e1 && !e2) continue;
+            const todo = [o, tRaw, e1, n].join(" ").toUpperCase();
+            if (todo.includes("SIN NOVEDAD")) {
+              pruebasOk++;
+              continue;
+            }
+            if (!tRaw && !e1 && !e2) {
+              if (n && (oki || normFecha(get("fp")))) pruebasOk++;
+              continue;
+            }
+            const o2 = normTxt(get("o2"));
+            if (o2) o += (o ? " ⟶ " : "") + "Corrección: " + o2;
+            out.push({
+              a: normTxt(get("a")).toUpperCase() || name.toUpperCase(),
+              n: n,
+              t: normTipo(tRaw),
+              r: normTxt(get("r")).toUpperCase() || "—",
+              e: e2 ? normEstado(e2) : normEstado(e1),
+              fp: normFecha(get("fp")),
+              fc: normFecha(get("fc")),
+              p: [normTxt(get("mod")), normTxt(get("proc"))]
+                .filter(Boolean)
+                .join(" · "),
+              o: o,
+            });
+          }
+        }
+        return { casos: out, pruebasOk };
+      }
+
+      /* ---------- Estado de la app ---------- */
+      let DATA = [],
+        PRUEBAS_OK = 0,
+        AGG = null,
+        HIST = null,
+        META = { fp: null, src: null, dbTs: null },
+        sortK = "fp",
+        sortDir = -1,
+        verTodas = false,
+        chartTab = "act";
+      const CAP_FILAS = 400;
+
+      function computeDias(data) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        for (const d of data)
+          d.dias =
+            d.fp != null
+              ? Math.max(
+                  0,
+                  Math.round((new Date(d.fc || hoy) - new Date(d.fp)) / 864e5),
+                )
+              : null;
+      }
+
+      function resumenPor(F, campo) {
+        const g = new Map();
+        for (const d of F) {
+          const k = d[campo] || "—";
+          if (!g.has(k))
+            g.set(k, { k, tot: 0, res: 0, pro: 0, pen: 0, dias: [], old: 0 });
+          const x = g.get(k);
+          x.tot++;
+          if (esResuelto(d)) {
+            x.res++;
+            if (d.fc && d.fp)
+              x.dias.push((new Date(d.fc) - new Date(d.fp)) / 864e5);
+          } else if (esProceso(d)) x.pro++;
+          else {
+            x.pen++;
+            if (d.dias) x.old = Math.max(x.old, d.dias);
+          }
+        }
+        return [...g.values()].sort((a, b) => b.pen - a.pen || b.tot - a.tot);
+      }
+
+      function computeAgg(data) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const tot = data.length;
+        const res = data.filter(esResuelto).length;
+        const pro = data.filter(esProceso).length;
+        const pen = tot - res - pro;
+        const dias = data
+          .filter((d) => d.fc && d.fp)
+          .map((d) => (new Date(d.fc) - new Date(d.fp)) / 864e5);
+        const prom = dias.length
+          ? (dias.reduce((a, b) => a + b, 0) / dias.length).toFixed(1)
+          : "—";
+        let old = 0;
+        for (const d of data)
+          if (esPendiente(d) && d.dias) old = Math.max(old, d.dias);
+        const days = [
+          ...new Set(data.flatMap((d) => [d.fp, d.fc]).filter(Boolean)),
+        ].sort();
+        const rep = days.map((dd) => data.filter((x) => x.fp === dd).length);
+        const sol = days.map(
+          (dd) => data.filter((x) => x.fc === dd && esResuelto(x)).length,
+        );
+        let acc = 0;
+        const back = days.map((dd, i) => (acc += rep[i] - sol[i]));
+        const tipoPorArea = {};
+        for (const d of data) {
+          const a = d.a || "—";
+          (tipoPorArea[a] = tipoPorArea[a] || {})[d.t] =
+            (tipoPorArea[a][d.t] || 0) + 1;
+        }
+        const estados = {};
+        for (const d of data) estados[d.e] = (estados[d.e] || 0) + 1;
+        return {
+          tipoPorArea,
+          estados,
+          tot,
+          res,
+          pro,
+          pen,
+          prom,
+          old,
+          pct: tot ? Math.round((res / tot) * 100) : 0,
+          hoyRep: data.filter((d) => d.fp === hoy).length,
+          hoyRes: data.filter((d) => d.fc === hoy && esResuelto(d)).length,
+          areas: resumenPor(data, "a"),
+          resps: resumenPor(data, "r"),
+          tipos: resumenPor(data, "t").sort((a, b) => b.tot - a.tot),
+          days,
+          rep,
+          sol,
+          back,
+        };
+      }
+
+      /* ---------- Selección múltiple (filtros avanzados) ---------- */
+      class MultiSelect {
+        constructor(id, label, opts = {}) {
+          this.label = label;
+          this.buscable = !!opts.buscable;
+          this.filtro = "";
+          this.sel = new Set();
+          this.values = [];
+          this.root = document.createElement("div");
+          this.root.className = "msel";
+          this.root.id = id;
+          this.btn = document.createElement("button");
+          this.btn.className = "msel-btn";
+          this.btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const abierto = this.root.classList.contains("open");
+            document
+              .querySelectorAll(".msel.open")
+              .forEach((m) => m.classList.remove("open"));
+            if (!abierto) this.root.classList.add("open");
+          });
+          this.panel = document.createElement("div");
+          this.panel.className = "msel-panel";
+          this.panel.addEventListener("click", (e) => e.stopPropagation());
+          this.root.append(this.btn, this.panel);
+          this.pintarBoton();
+        }
+        pintarBoton() {
+          this.btn.textContent = this.label;
+          if (this.sel.size) {
+            const b = document.createElement("span");
+            b.className = "badge";
+            b.textContent = this.sel.size;
+            this.btn.appendChild(b);
+          }
+          const c = document.createElement("span");
+          c.className = "caret";
+          c.textContent = "▾";
+          this.btn.appendChild(c);
+        }
+        setOptions(vals) {
+          const nuevos = [...new Set(vals.filter(Boolean))].sort();
+          if (nuevos.join("\u0001") === this.values.join("\u0001")) return;
+          this.values = nuevos;
+          this.filtro = "";
+          this.sel = new Set(
+            [...this.sel].filter((v) => this.values.includes(v)),
+          );
+          this.panel.textContent = "";
+          if (this.buscable) {
+            const bus = document.createElement("input");
+            bus.type = "search";
+            bus.className = "msel-search";
+            bus.placeholder = "Filtrar… (ej. PRIS)";
+            bus.addEventListener("input", () => {
+              this.filtro = bus.value.trim().toLowerCase();
+              this.aplicarFiltro();
+            });
+            this.panel.appendChild(bus);
+          }
+          const tools = document.createElement("div");
+          tools.className = "msel-tools";
+          const bAll = document.createElement("button");
+          bAll.textContent = this.buscable ? "Marcar visibles" : "Todos";
+          bAll.addEventListener("click", () => {
+            for (const v of this.visibles()) this.sel.add(v);
+            this.sync();
+            onFiltersChanged();
+          });
+          const bNone = document.createElement("button");
+          bNone.textContent = "Ninguno";
+          bNone.addEventListener("click", () => {
+            this.sel.clear();
+            this.sync();
+            onFiltersChanged();
+          });
+          tools.append(bAll, bNone);
+          this.panel.appendChild(tools);
+          for (const v of this.values) {
+            const lb = document.createElement("label");
+            lb.dataset.v = v;
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.value = v;
+            cb.checked = this.sel.has(v);
+            cb.addEventListener("change", () => {
+              cb.checked ? this.sel.add(v) : this.sel.delete(v);
+              this.pintarBoton();
+              onFiltersChanged();
+            });
+            lb.append(cb, document.createTextNode(v));
+            this.panel.appendChild(lb);
+          }
+          this.pintarBoton();
+        }
+        visibles() {
+          return this.values.filter(
+            (v) => !this.filtro || v.toLowerCase().includes(this.filtro),
+          );
+        }
+        aplicarFiltro() {
+          this.panel.querySelectorAll("label").forEach((lb) => {
+            lb.style.display =
+              !this.filtro || lb.dataset.v.toLowerCase().includes(this.filtro)
+                ? ""
+                : "none";
+          });
+        }
+        sync() {
+          this.panel
+            .querySelectorAll("input[type=checkbox]")
+            .forEach((cb) => (cb.checked = this.sel.has(cb.value)));
+          this.pintarBoton();
+        }
+        set(vals) {
+          this.sel = new Set(vals.filter((v) => this.values.includes(v)));
+          this.sync();
+        }
+        pasa(v) {
+          return !this.sel.size || this.sel.has(v);
+        }
+      }
+      const MS = {
+        a: new MultiSelect("fArea", "Área", { buscable: true }),
+        t: new MultiSelect("fTipo", "Tipo"),
+        r: new MultiSelect("fResp", "Responsable", { buscable: true }),
+        e: new MultiSelect("fEstado", "Estado"),
+      };
+      {
+        // Responsable es GLOBAL (barra de navegación): define las estadísticas
+        // de todo el tablero. Los demás viven en "Filtros ▾" de Tareas.
+        document.getElementById("filtroGlobal").appendChild(MS.r.root);
+        const cont = document.getElementById("advFil");
+        for (const k of ["a", "t", "e"]) cont.appendChild(MS[k].root);
+      }
+      document.addEventListener("click", () =>
+        document
+          .querySelectorAll(".msel.open")
+          .forEach((m) => m.classList.remove("open")),
+      );
+
+      function filtradosTareas() {
+        const tx = document.getElementById("fTxt").value.toLowerCase();
+        return DATA.filter(
+          (d) =>
+            MS.a.pasa(d.a) &&
+            MS.t.pasa(d.t) &&
+            MS.r.pasa(d.r) &&
+            MS.e.pasa(d.e) &&
+            (!tx || (d.o + " " + d.n + " " + d.p).toLowerCase().includes(tx)),
+        );
+      }
+
+      /* ---------- colores de series (validados con el skill dataviz) ---------- */
+      const INK = "#e8edf7",
+        MUT = "#8fa0bd",
+        GRIDC = "#263352",
+        SURF = "#141e33";
+      const C_REP = "#3987e5", // azul — reportados / en proceso
+        C_RES = "#0ca30c", // verde — resuelto (semántica de estado)
+        C_PEN = "#d03b3b", // rojo — pendiente (semántica de estado)
+        C_BACK = "#fab219", // ámbar — backlog
+        C_HPEN = "#d95926"; // naranja — pendientes en el histórico
+      const GRID = { grid: { color: GRIDC }, ticks: { color: MUT } };
+      const TOOLTIP = {
+        backgroundColor: "#1a2740",
+        borderColor: GRIDC,
+        borderWidth: 1,
+        titleColor: INK,
+        bodyColor: INK,
+        padding: 10,
+        mode: "index",
+        intersect: false,
+      };
+      const barTipLabels = {
+        id: "barTipLabels",
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          ctx.save();
+          ctx.fillStyle = INK;
+          ctx.font = "12px 'Segoe UI',system-ui,sans-serif";
+          ctx.textBaseline = "middle";
+          chart.getDatasetMeta(0).data.forEach((bar, i) => {
+            const v = chart.data.datasets[0].data[i];
+            if (v != null) ctx.fillText(fmt(v), bar.x + 6, bar.y);
+          });
+          ctx.restore();
+        },
+      };
+      function lineDs(label, data, color) {
+        return {
+          label,
+          data,
+          borderColor: color,
+          backgroundColor: color + "1A",
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: color,
+          pointHoverBorderColor: SURF,
+          pointHoverBorderWidth: 2,
+        };
+      }
+      const CH = {};
+      function buildCharts() {
+        const optLinea = (leyenda) => ({
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: leyenda
+              ? {
+                  labels: { color: INK, usePointStyle: true, pointStyle: "line" },
+                }
+              : { display: false },
+            tooltip: TOOLTIP,
+          },
+          scales: { x: GRID, y: { ...GRID, beginAtZero: true } },
+        });
+        CH.act = new Chart(document.getElementById("chAct"), {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [lineDs("Reportados", [], C_REP), lineDs("Resueltos", [], C_RES)],
+          },
+          options: optLinea(true),
+        });
+        CH.back = new Chart(document.getElementById("chBack"), {
+          type: "line",
+          data: { labels: [], datasets: [lineDs("Backlog", [], C_BACK)] },
+          options: optLinea(false),
+        });
+        CH.tipo = new Chart(document.getElementById("chTipo"), {
+          type: "bar",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                data: [],
+                backgroundColor: C_REP,
+                borderRadius: 4,
+                borderSkipped: "start",
+                maxBarThickness: 22,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            indexAxis: "y",
+            layout: { padding: { right: 48 } },
+            plugins: {
+              legend: { display: false },
+              tooltip: { ...TOOLTIP, mode: "nearest" },
+            },
+            scales: {
+              x: { ...GRID, beginAtZero: true },
+              y: { grid: { display: false }, ticks: { color: MUT } },
+            },
+          },
+          plugins: [barTipLabels],
+        });
+        CH.hist = new Chart(document.getElementById("chHist"), {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              lineDs("Resueltos", [], C_REP),
+              lineDs("Pendientes", [], C_HPEN),
+            ],
+          },
+          options: optLinea(true),
+        });
+      }
+      function updateCharts(A) {
+        CH.act.data.labels = A.days;
+        CH.act.data.datasets[0].data = A.rep;
+        CH.act.data.datasets[1].data = A.sol;
+        CH.act.update("none");
+        CH.back.data.labels = A.days;
+        CH.back.data.datasets[0].data = A.back;
+        CH.back.update("none");
+        CH.tipo.data.labels = A.tipos.map((x) => x.k);
+        CH.tipo.data.datasets[0].data = A.tipos.map((x) => x.tot);
+        CH.tipo.update("none");
+      }
+      function updateHist(h) {
+        HIST = h;
+        const g = (h && h.global) || [];
+        if (!g.length) return;
+        document.getElementById("segHist").style.display = "";
+        CH.hist.data.labels = g.map((s) =>
+          s.ts.slice(5, 16).replace("T", " "),
+        );
+        CH.hist.data.datasets[0].data = g.map((s) => s.resueltos);
+        CH.hist.data.datasets[1].data = g.map(
+          (s) => s.pendientes + s.en_proceso,
+        );
+        CH.hist.update("none");
+      }
+      function selectChartTab(c) {
+        chartTab = c;
+        document
+          .querySelectorAll("#segChart button")
+          .forEach((x) => x.classList.toggle("on", x.dataset.c === c));
+        for (const [k, canvasId] of [
+          ["act", "chAct"],
+          ["back", "chBack"],
+          ["tipo", "chTipo"],
+          ["hist", "chHist"],
+        ]) {
+          document.getElementById(canvasId).style.display =
+            k === c ? "" : "none";
+        }
+        CH[c] && CH[c].resize();
+      }
+      document.getElementById("segChart").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b || b.dataset.off === "1") return;
+        selectChartTab(b.dataset.c);
+      });
+
+      /* ---------- render Panorama ---------- */
+      function colorSalud(pct) {
+        return pct >= 70 ? C_RES : pct >= 40 ? C_BACK : C_HPEN;
+      }
+      function segbar(res, pro, pen) {
+        const partes = [
+          [res, C_RES],
+          [pro, C_REP],
+          [pen, C_PEN],
+        ].filter(([v]) => v > 0);
+        if (!partes.length) return `<div class="segbar"></div>`;
+        return (
+          `<div class="segbar">` +
+          partes
+            .map(([v, c]) => `<span style="flex:${v};background:${c}"></span>`)
+            .join("") +
+          `</div>`
+        );
+      }
+      function renderPanorama() {
+        const A = AGG;
+        if (!A) return;
+        // el Histórico de la BD siempre es global: bloquearlo si hay filtro
+        const filtrado = MS.r.sel.size > 0;
+        const bh = document.getElementById("segHist");
+        bh.style.opacity = filtrado ? "0.45" : "";
+        bh.dataset.off = filtrado ? "1" : "";
+        bh.title = filtrado
+          ? "El histórico de la BD es global (no guarda historia por responsable)"
+          : "";
+        if (filtrado && chartTab === "hist") selectChartTab("act");
+        // héroe
+        const ring = document.getElementById("ringVal");
+        const CIRC = 402.12;
+        ring.style.strokeDashoffset = CIRC * (1 - A.pct / 100);
+        ring.style.stroke = colorSalud(A.pct);
+        const pctEl = document.getElementById("heroPct");
+        pctEl.textContent = A.tot ? A.pct + "%" : "—";
+        document.getElementById("hPend").textContent = fmt(A.pen);
+        document.getElementById("hPendOld").textContent = A.pen
+          ? `la más antigua lleva ${A.old} d`
+          : "";
+        document.getElementById("hProc").textContent = fmt(A.pro);
+        document.getElementById("hRes").textContent = fmt(A.res);
+        document.getElementById("hResSub").textContent =
+          `de ${fmt(A.tot)} casos`;
+        document.getElementById("hProm").textContent = A.prom;
+        const filtroTxt = filtrado
+          ? `Mostrando solo: <b>${esc([...MS.r.sel].join(", "))}</b>` +
+            ` <button class="quitarFiltro" onclick="quitarFiltroResp()">✕ quitar</button> &nbsp;·&nbsp; `
+          : "";
+        document.getElementById("heroFoot").innerHTML =
+          filtroTxt +
+          `Hoy: <b>+${fmt(A.hoyRep)}</b> reportados · <b>${fmt(A.hoyRes)}</b> resueltos` +
+          ` &nbsp;·&nbsp; <b>${fmt(PRUEBAS_OK)}</b> pruebas sin novedad` +
+          (filtrado ? " (global)" : "");
+
+        // tarjetas de área
+        document.getElementById("areasGrid").innerHTML = A.areas
+          .map((x) => {
+            const pct = x.tot ? Math.round((x.res / x.tot) * 100) : 0;
+            const foot = x.pen
+              ? `pendiente más antigua: ${x.old} d`
+              : `área al día ✓`;
+            const tipos = Object.entries(A.tipoPorArea[x.k] || {}).sort(
+              (p, q) => q[1] - p[1],
+            );
+            const tiposTxt =
+              tipos
+                .slice(0, 3)
+                .map(([t, n]) => `${esc(t)} <b>${fmt(n)}</b>`)
+                .join(" · ") +
+              (tipos.length > 3 ? ` · +${tipos.length - 3}` : "");
+            return `<div class="acard" data-v="${esc(x.k)}" title="Ver el desglose de ${esc(x.k)}">
+              <div class="ahead"><span class="aname">${esc(x.k)}</span>
+                <span class="apct" style="color:${colorSalud(pct)}">${pct}%</span></div>
+              ${segbar(x.res, x.pro, x.pen)}
+              <div class="acounts">
+                <span><span class="pip" style="background:${C_RES}"></span><b>${fmt(x.res)}</b> res.</span>
+                <span><span class="pip" style="background:${C_REP}"></span><b>${fmt(x.pro)}</b> proc.</span>
+                <span><span class="pip" style="background:${C_PEN}"></span><b>${fmt(x.pen)}</b> pend.</span>
+              </div>
+              <div class="atipos">${tiposTxt}</div>
+              <div class="afoot${x.pen ? "" : " ok"}">${foot}</div>
+            </div>`;
+          })
+          .join("");
+        document.querySelectorAll("#areasGrid .acard").forEach((el) =>
+          el.addEventListener("click", () => abrirArea(el.dataset.v)),
+        );
+
+        // desglose general por tipo (respeta el filtro de responsable)
+        document.getElementById("desgTipos").innerHTML = A.tipos
+          .map((x) => {
+            const pctT = x.tot ? Math.round((x.res / x.tot) * 100) : 0;
+            return `<div class="mrow mrow-click" data-t="${esc(x.k)}" title="Ver las tareas de tipo ${esc(x.k)}">
+              <span class="tag t-${x.k.replace(/[^A-Z]/g, "") || "OTRO"}">${esc(x.k)}</span>
+              <span class="mtot">${fmt(x.tot)}</span>
+              ${segbar(x.res, x.pro, x.pen)}
+              <span class="mdet">${fmt(x.res)} res. · ${fmt(x.pro)} proc. · <b style="color:${x.pen ? "var(--badTxt)" : "var(--okTxt)"}">${fmt(x.pen)} pend.</b> · <b style="color:${colorSalud(pctT)}">${pctT}%</b></span>
+            </div>`;
+          })
+          .join("");
+        document.querySelectorAll("#desgTipos .mrow-click").forEach((el) =>
+          el.addEventListener("click", () => {
+            MS.t.set([el.dataset.t]);
+            onFiltersChanged();
+            setView("tareas");
+          }),
+        );
+        const ordenEstG = [
+          "PENDIENTE",
+          "PENDIENTE INFO",
+          "EN PROCESO",
+          "RESUELTO",
+        ];
+        document.getElementById("desgEstados").innerHTML = ordenEstG
+          .filter((e) => A.estados[e])
+          .map(
+            (e) =>
+              `<span class="estChip" data-e="${e}" title="Ver las tareas en estado ${e}"><span class="tag e-${e.replace(/ /g, "-")}">${e}</span> <b>${fmt(A.estados[e])}</b></span>`,
+          )
+          .join("");
+        document.querySelectorAll("#desgEstados .estChip").forEach((el) =>
+          el.addEventListener("click", () => {
+            MS.e.set([el.dataset.e]);
+            onFiltersChanged();
+            setView("tareas");
+          }),
+        );
+
+        // equipo
+        renderEquipo(false);
+        updateCharts(A);
+        document.getElementById("tabTareasN").textContent = fmt(
+          A.pen + A.pro,
+        );
+      }
+      let equipoTodos = false;
+      function renderEquipo(toggle) {
+        if (toggle) equipoTodos = !equipoTodos;
+        const A = AGG;
+        if (!A) return;
+        const lista = equipoTodos ? A.resps : A.resps.slice(0, 8);
+        const el = document.getElementById("equipo");
+        el.innerHTML =
+          lista
+            .map((x) => {
+              const prom = x.dias.length
+                ? (x.dias.reduce((a, b) => a + b, 0) / x.dias.length).toFixed(1) +
+                  " d prom."
+                : "sin resueltos aún";
+              const ini = esc(
+                x.k
+                  .split(/\s+/)
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2),
+              );
+              return `<div class="trow" data-v="${esc(x.k)}" title="Ver tareas de ${esc(x.k)}">
+                <div class="avatar">${ini}</div>
+                <div class="tinfo"><div class="tname">${esc(x.k)}</div>
+                <div class="tsub">${fmt(x.tot)} casos · ${prom}</div></div>
+                ${segbar(x.res, x.pro, x.pen)}
+                <div class="tpend${x.pen ? "" : " cero"}">${x.pen ? fmt(x.pen) + " pend." : "al día"}</div>
+              </div>`;
+            })
+            .join("") +
+          (A.resps.length > 8
+            ? `<button class="verTodos" onclick="renderEquipo(true)">${
+                equipoTodos
+                  ? "Ver menos"
+                  : `Ver todos (${fmt(A.resps.length)})`
+              }</button>`
+            : "");
+        el.querySelectorAll(".trow").forEach((tr) =>
+          tr.addEventListener("click", () => {
+            MS.r.set([tr.dataset.v]);
+            onFiltersChanged();
+            setView("tareas");
+          }),
+        );
+      }
+
+      /* ---------- panel de desglose por área ---------- */
+      let areaActual = null;
+      function abrirArea(k) {
+        areaActual = k;
+        const datos = baseGlobal().filter((d) => (d.a || "—") === k);
+        const filtrado = MS.r.sel.size > 0;
+        const res = datos.filter(esResuelto).length;
+        const pro = datos.filter(esProceso).length;
+        const pen = datos.length - res - pro;
+        const pct = datos.length ? Math.round((res / datos.length) * 100) : 0;
+        const diasSol = datos
+          .filter((d) => d.fc && d.fp)
+          .map((d) => (new Date(d.fc) - new Date(d.fp)) / 864e5);
+        const prom = diasSol.length
+          ? (diasSol.reduce((a, b) => a + b, 0) / diasSol.length).toFixed(1)
+          : "—";
+        let old = 0;
+        for (const d of datos)
+          if (esPendiente(d) && d.dias) old = Math.max(old, d.dias);
+
+        document.getElementById("maTitle").textContent = k;
+        document.getElementById("maSub").textContent =
+          `${fmt(datos.length)} casos` +
+          (filtrado ? ` · mostrando solo: ${[...MS.r.sel].join(", ")}` : "");
+
+        // por tipo de novedad (con avance propio de cada tipo)
+        const tipos = resumenPor(datos, "t").sort((a, b) => b.tot - a.tot);
+        const filaTipo = (x) =>
+          `<div class="mrow">
+            <span class="tag t-${x.k.replace(/[^A-Z]/g, "") || "OTRO"}">${esc(x.k)}</span>
+            <span class="mtot">${fmt(x.tot)}</span>
+            ${segbar(x.res, x.pro, x.pen)}
+            <span class="mdet">${fmt(x.res)} res. · ${fmt(x.pro)} proc. · <b style="color:${x.pen ? "var(--badTxt)" : "var(--okTxt)"}">${fmt(x.pen)} pend.</b></span>
+          </div>`;
+
+        // por estado (incluye PENDIENTE INFO por separado)
+        const est = {};
+        for (const d of datos) est[d.e] = (est[d.e] || 0) + 1;
+        const ordenEst = ["PENDIENTE", "PENDIENTE INFO", "EN PROCESO", "RESUELTO"];
+        const filaEst = ordenEst
+          .filter((e) => est[e])
+          .map(
+            (e) =>
+              `<span style="margin-right:14px;white-space:nowrap"><span class="tag e-${e.replace(/ /g, "-")}">${e}</span> <b style="font-size:14px">${fmt(est[e])}</b></span>`,
+          )
+          .join("");
+
+        // responsables dentro del área
+        const resps = resumenPor(datos, "r").slice(0, 8);
+        const filaResp = (x) => {
+          const ini = esc(
+            x.k
+              .split(/\s+/)
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2),
+          );
+          return `<div class="trow" data-r="${esc(x.k)}" title="Ver estas tareas">
+            <div class="avatar">${ini}</div>
+            <div class="tinfo"><div class="tname">${esc(x.k)}</div>
+            <div class="tsub">${fmt(x.tot)} casos</div></div>
+            ${segbar(x.res, x.pro, x.pen)}
+            <div class="tpend${x.pen ? "" : " cero"}">${x.pen ? fmt(x.pen) + " pend." : "al día"}</div>
+          </div>`;
+        };
+
+        document.getElementById("maBody").innerHTML =
+          segbar(res, pro, pen).replace('class="segbar"', 'class="segbar" style="height:10px"') +
+          `<div class="mstats">
+            <div class="mstat"><div class="v">${fmt(datos.length)}</div><div class="l">Casos</div></div>
+            <div class="mstat"><div class="v" style="color:var(--okTxt)">${fmt(res)}</div><div class="l">Resueltos</div></div>
+            <div class="mstat"><div class="v" style="color:var(--acc)">${fmt(pro)}</div><div class="l">En proceso</div></div>
+            <div class="mstat"><div class="v" style="color:var(--badTxt)">${fmt(pen)}</div><div class="l">Pendientes</div></div>
+            <div class="mstat"><div class="v" style="color:${colorSalud(pct)}">${pct}%</div><div class="l">Avance</div></div>
+            <div class="mstat"><div class="v">${prom}</div><div class="l">Prom. días</div></div>
+            <div class="mstat"><div class="v">${old || "—"}</div><div class="l">Más antigua (d)</div></div>
+          </div>` +
+          `<div class="msec">Por tipo de novedad</div>` +
+          tipos.map(filaTipo).join("") +
+          `<div class="msec">Por estado</div><div style="padding:4px 2px">${filaEst}</div>` +
+          `<div class="msec">Responsables en esta área</div>` +
+          resps.map(filaResp).join("");
+
+        document.querySelectorAll("#maBody .trow").forEach((tr) =>
+          tr.addEventListener("click", () =>
+            verTareasArea(areaActual, tr.dataset.r),
+          ),
+        );
+        document.getElementById("modalArea").style.display = "flex";
+      }
+      function cerrarArea() {
+        document.getElementById("modalArea").style.display = "none";
+      }
+      function verTareasArea(k, r) {
+        MS.a.set([k]);
+        if (r) MS.r.set([r]);
+        cerrarArea();
+        onFiltersChanged();
+        setView("tareas");
+      }
+      document.getElementById("maVer").addEventListener("click", () =>
+        verTareasArea(areaActual, null),
+      );
+      document.getElementById("modalArea").addEventListener("click", (e) => {
+        if (e.target === document.getElementById("modalArea")) cerrarArea();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cerrarArea();
+      });
+
+      /* ---------- render Tareas ---------- */
+      const BUCKETS = {
+        PEND: ["PENDIENTE", "PENDIENTE INFO"],
+        PROC: ["EN PROCESO"],
+        RES: ["RESUELTO"],
+      };
+      document.getElementById("chipsEstado").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        const bucket = b.dataset.b;
+        MS.e.set(bucket ? BUCKETS[bucket] : []);
+        onFiltersChanged();
+      });
+      function syncChips() {
+        const sel = [...MS.e.sel].sort().join("|");
+        document.querySelectorAll("#chipsEstado .chip").forEach((c) => {
+          const bucket = c.dataset.b;
+          const objetivo = bucket
+            ? BUCKETS[bucket]
+                .filter((v) => MS.e.values.includes(v))
+                .sort()
+                .join("|")
+            : "";
+          c.classList.toggle("on", sel === objetivo);
+        });
+      }
+      function renderActiveFil() {
+        const cont = document.getElementById("activeFil");
+        cont.textContent = "";
+        for (const k of ["a", "t", "r", "e"]) {
+          const m = MS[k];
+          if (!m.sel.size) continue;
+          const chip = document.createElement("span");
+          chip.className = "fchip";
+          const lbl = document.createElement("span");
+          lbl.textContent = m.label + ": " + [...m.sel].join(", ");
+          const x = document.createElement("button");
+          x.textContent = "✕";
+          x.title = "Quitar este filtro";
+          x.addEventListener("click", () => {
+            m.set([]);
+            onFiltersChanged();
+          });
+          chip.append(lbl, x);
+          cont.appendChild(chip);
+        }
+      }
+      function renderTareas() {
+        const F = filtradosTareas();
+        const S = [...F].sort((x, y) => {
+          const a = x[sortK] ?? "",
+            b = y[sortK] ?? "";
+          return (a < b ? -1 : a > b ? 1 : 0) * sortDir;
+        });
+        document.getElementById("cnt").textContent = fmt(S.length);
+        const visibles = verTodas ? S : S.slice(0, CAP_FILAS);
+        document.querySelector("#tbl tbody").innerHTML = visibles
+          .map(
+            (d) => `<tr>
+    <td>${esc(d.n) || "—"}</td><td>${esc(d.a)}</td><td>${esc(d.p) || "—"}</td>
+    <td><span class="tag t-${d.t.replace(/[^A-Z]/g, "") || "OTRO"}">${esc(d.t)}</span></td>
+    <td>${esc(d.r)}</td>
+    <td><span class="tag e-${d.e.replace(/ /g, "-")}">${esc(d.e)}</span></td>
+    <td>${d.fp || "—"}</td><td>${d.fc || "—"}</td>
+    <td class="num">${d.dias ?? "—"}</td>
+    <td class="obs" title="${esc(d.o)}">${esc(d.o)}</td>
+  </tr>`,
+          )
+          .join("");
+        document
+          .querySelectorAll("#tbl tbody tr")
+          .forEach((tr) =>
+            tr.addEventListener("click", () => tr.classList.toggle("open")),
+          );
+        const mas = document.getElementById("masFilas");
+        mas.textContent = "";
+        if (!verTodas && S.length > CAP_FILAS) {
+          const b = document.createElement("button");
+          b.textContent = `Mostrar las ${fmt(S.length - CAP_FILAS)} filas restantes`;
+          b.addEventListener("click", () => {
+            verTodas = true;
+            renderTareas();
+          });
+          mas.appendChild(b);
+        }
+      }
+      function onFiltersChanged() {
+        verTodas = false;
+        syncChips();
+        renderActiveFil();
+        refreshPanorama();
+        renderTareas();
+      }
+
+      /* ---------- vistas ---------- */
+      function setView(v) {
+        document.getElementById("viewPanorama").style.display =
+          v === "panorama" ? "" : "none";
+        document.getElementById("viewTareas").style.display =
+          v === "tareas" ? "" : "none";
+        document
+          .getElementById("tabPanorama")
+          .classList.toggle("on", v === "panorama");
+        document
+          .getElementById("tabTareas")
+          .classList.toggle("on", v === "tareas");
+        if (v === "panorama" && CH[chartTab]) CH[chartTab].resize();
+      }
+
+      /* ---------- ciclo de datos ---------- */
+      // El Panorama se calcula sobre los datos filtrados por responsable
+      // (filtro global) — así "PRIS" muestra cómo va PRIS por área.
+      function baseGlobal() {
+        return MS.r.sel.size
+          ? DATA.filter((d) => MS.r.pasa(d.r))
+          : DATA;
+      }
+      function refreshPanorama() {
+        AGG = computeAgg(baseGlobal());
+        renderPanorama();
+      }
+      function quitarFiltroResp() {
+        MS.r.set([]);
+        onFiltersChanged();
+      }
+      function aplicarDatos(origen) {
+        computeDias(DATA);
+        MS.a.setOptions(DATA.map((d) => d.a));
+        MS.t.setOptions(DATA.map((d) => d.t));
+        MS.r.setOptions(DATA.map((d) => d.r));
+        MS.e.setOptions(DATA.map((d) => d.e));
+        onFiltersChanged();
+        if (origen)
+          document.getElementById("srcInfo").textContent = "origen: " + origen;
+      }
+      let countdown = CONFIG.POLL_SECONDS;
+      let reseedHecho = false;
+      async function cargar(manual) {
+        const dot = document.getElementById("liveDot"),
+          txt = document.getElementById("liveTxt"),
+          sb = document.getElementById("statusbox");
+        if (manual) txt.textContent = "Actualizando…";
+        try {
+          let cambio = false,
+            origen = null;
+          const lect = await leerFuente();
+          if (lect.estado === "datos") {
+            let res;
+            try {
+              res = parseWorkbook(lect.buf);
+            } catch (e) {
+              throw new Error(
+                "El archivo no se pudo leer como Excel. Si lo reemplazaste, vuelve a conectarlo con «📂 Excel local»",
+              );
+            }
+            if (!res.casos.length)
+              throw new Error(
+                "El Excel se leyó pero no se detectaron casos (¿cambió la estructura de columnas?)",
+              );
+            if (MODO === "bd") {
+              const r = await apiPost("/api/cargar", {
+                casos: res.casos,
+                pruebasOk: res.pruebasOk,
+                origen: lect.src,
+              });
+              if (r.nuevos + r.cambios + r.desactivados > 0) cambio = true;
+            } else {
+              DATA = res.casos;
+              PRUEBAS_OK = res.pruebasOk;
+              cambio = true;
+              idb.set("casos", DATA).catch(() => {});
+              idb.set("pruebasOk", PRUEBAS_OK).catch(() => {});
+            }
+            META.fp = lect.fp;
+            META.src = lect.src;
+            origen = lect.src;
+          } else if (lect.estado === "sin-cambios") {
+            origen = lect.src;
+          }
+
+          if (MODO === "bd") {
+            const d = await apiGet("/api/datos");
+            // si el hosting reinició y la BD quedó vacía pero este navegador
+            // tiene el Excel conectado, forzar re-lectura en el próximo ciclo
+            if (
+              !d.casos.length &&
+              META.fp &&
+              (localHandle || localFile) &&
+              !reseedHecho
+            ) {
+              reseedHecho = true;
+              META.fp = null;
+              setTimeout(() => cargar(false), 1500);
+            }
+            const ts = (d.ultimaCarga && d.ultimaCarga.ts) || "";
+            if (ts !== META.dbTs || cambio || !AGG) {
+              DATA = d.casos;
+              PRUEBAS_OK = d.pruebasOk;
+              META.dbTs = ts;
+              cambio = true;
+              apiGet("/api/historia?dias=90").then(updateHist).catch(() => {});
+            }
+            origen =
+              "base de datos SQLite" +
+              (origen ? " · alimentada por " + origen : "") +
+              (ts ? " · última carga " + ts.slice(11, 16) : "");
+          } else if (lect.estado === "sin-fuente" && !DATA.length) {
+            throw new Error("No se pudo obtener el Excel por ninguna vía");
+          }
+
+          if (cambio) aplicarDatos(origen);
+          else if (origen)
+            document.getElementById("srcInfo").textContent =
+              "origen: " + origen;
+          dot.className = "dot ok";
+          if (
+            sb.className === "statusbox err" ||
+            sb.dataset.tipo === "warnUpdate"
+          ) {
+            sb.className = "statusbox";
+            delete sb.dataset.tipo;
+          }
+          txt.textContent = cambio
+            ? "EN VIVO · actualizado " +
+              new Date().toLocaleTimeString("es-CO")
+            : "EN VIVO · sin cambios · " +
+              new Date().toLocaleTimeString("es-CO");
+        } catch (err) {
+          if (DATA.length) {
+            sb.className = "statusbox warn";
+            sb.dataset.tipo = "warnUpdate";
+            sb.textContent =
+              "⚠ No se pudo actualizar (" +
+              err.message +
+              "). Mostrando los últimos datos conocidos.";
+            txt.textContent = "Con datos guardados";
+          } else {
+            dot.className = "dot err";
+            txt.textContent = "Sin conexión a los datos";
+            sb.className = "statusbox err";
+            sb.textContent =
+              "✖ " +
+              err.message +
+              ". Usa «📂 Excel local» (o arrastra el .xlsx a la página) para conectar el archivo desde tu equipo.";
+          }
+        }
+        countdown = CONFIG.POLL_SECONDS;
+      }
+      setInterval(() => {
+        if (--countdown <= 0) cargar(false);
+      }, 1000);
+
+      /* ---------- interacciones restantes ---------- */
+      document
+        .getElementById("fTxt")
+        .addEventListener("input", debounce(onFiltersChanged, 180));
+      document.getElementById("btnFiltros").addEventListener("click", () => {
+        const p = document.getElementById("advFil");
+        p.style.display = p.style.display === "none" ? "" : "none";
+      });
+      function resetFiltros() {
+        document.getElementById("fTxt").value = "";
+        for (const k of ["a", "t", "r", "e"]) MS[k].set([]);
+        onFiltersChanged();
+      }
+      document.querySelectorAll("#tbl th[data-k]").forEach((th) =>
+        th.addEventListener("click", () => {
+          const k = th.dataset.k;
+          sortDir = sortK === k ? -sortDir : 1;
+          sortK = k;
+          renderTareas();
+        }),
+      );
+      function exportCSV() {
+        const F = filtradosTareas();
+        const escCsv = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+        const csv = [
+          "Nº;Área;Módulo·Proceso;Tipo;Responsable;Estado;Reportado;Resuelto;Días;Observación",
+          ...F.map((d) =>
+            [d.n, d.a, d.p, d.t, d.r, d.e, d.fp, d.fc, d.dias, d.o]
+              .map(escCsv)
+              .join(";"),
+          ),
+        ].join("\n");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(
+          new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }),
+        );
+        a.download =
+          "matriz_casos_" + new Date().toISOString().slice(0, 10) + ".csv";
+        a.click();
+      }
+
+      /* ---------- arranque ---------- */
+      buildCharts();
+      (async () => {
+        await probeApi();
+        const chip = document.getElementById("modoChip");
+        if (MODO === "bd") {
+          chip.innerHTML =
+            "<b>● BD SQLite</b> conectada" +
+            (API !== location.origin ? " (local)" : "");
+          chip.title =
+            "Los datos se guardan en matriz_qa.db con historial. Comparte http://<ip>:8765 con el equipo.";
+          try {
+            const d = await apiGet("/api/datos");
+            if (d.casos.length) {
+              DATA = d.casos;
+              PRUEBAS_OK = d.pruebasOk;
+              META.dbTs = (d.ultimaCarga && d.ultimaCarga.ts) || "";
+              aplicarDatos("base de datos SQLite");
+            }
+          } catch (e) {}
+          apiGet("/api/historia?dias=90").then(updateHist).catch(() => {});
+        } else {
+          chip.textContent = "modo autónomo (sin servidor)";
+          chip.title =
+            "Ejecuta INICIAR_TABLERO.bat para activar la base de datos SQLite con historial.";
+          try {
+            const c = await idb.get("casos");
+            if (c && c.length) {
+              DATA = c;
+              PRUEBAS_OK = (await idb.get("pruebasOk")) || 0;
+              aplicarDatos("caché del navegador (verificando cambios…)");
+            }
+          } catch (e) {}
+        }
+        await restaurarLocal();
+        cargar(true);
+      })();
+    </script>
+  </body>
+</html>

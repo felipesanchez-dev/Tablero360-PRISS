@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: tablero-qa
+    runtime: python
+    plan: free
+    buildCommand: "echo listo"
+    startCommand: "python servidor.py --no-abrir"
+    envVars:
+      - key: TABLERO_TOKEN
+        sync: false
