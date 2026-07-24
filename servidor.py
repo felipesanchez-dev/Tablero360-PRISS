@@ -270,6 +270,7 @@ def obtener_estado():
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "TableroQA/1.0"
+    protocol_version = "HTTP/1.1"
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -306,6 +307,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self._cors()
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def do_HEAD(self):  # sondas de salud de los proxies (Render, etc.)
+        self.send_response(200)
+        self._cors()
+        self.send_header("Content-Length", "0")
         self.end_headers()
 
     def do_GET(self):
@@ -348,8 +356,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"ok": False, "error": str(e)}, 500)
 
     def log_message(self, fmt, *args):  # silenciar GETs de sondeo; dejar el resto
-        if "/api/estado" not in (args[0] if args else ""):
-            sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
+        try:
+            msg = fmt % args  # args puede traer HTTPStatus u otros no-str
+        except Exception:  # noqa: BLE001
+            msg = str(fmt)
+        if "/api/estado" not in msg:
+            sys.stderr.write("%s - %s\n" % (self.address_string(), msg))
 
 
 def main():
