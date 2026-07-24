@@ -1208,28 +1208,73 @@
       /* ---------- Base de datos (API del servidor SQLite) ---------- */
       let API = null; // base URL cuando servidor.py está corriendo
       let MODO = "solo"; // 'bd' | 'solo'
+      async function intentarApi(base, ms) {
+        try {
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), ms);
+          const r = await fetch(base + "/api/estado", {
+            signal: ctl.signal,
+            cache: "no-store",
+          });
+          clearTimeout(t);
+          if (r.ok) {
+            const j = await r.json();
+            if (j && j.servicio === "tablero-qa") return true;
+          }
+        } catch (e) {}
+        return false;
+      }
       async function probeApi() {
-        const candidatas = (
-          location.protocol.startsWith("http") ? [location.origin] : []
-        ).concat([CONFIG.API_LOCAL]);
-        for (const base of candidatas) {
-          try {
-            const ctl = new AbortController();
-            const t = setTimeout(() => ctl.abort(), 1500);
-            const r = await fetch(base + "/api/estado", {
-              signal: ctl.signal,
-              cache: "no-store",
-            });
-            clearTimeout(t);
-            if (r.ok) {
-              const j = await r.json();
-              if (j && j.servicio === "tablero-qa") {
-                API = base;
-                MODO = "bd";
-                return;
-              }
+        if (location.protocol.startsWith("http")) {
+          // La página vino de este mismo servidor: la API tiene que existir.
+          // Insistir — el plan gratuito de Render tarda en despertar.
+          for (let i = 0; i < 3; i++) {
+            if (await intentarApi(location.origin, 8000)) {
+              API = location.origin;
+              MODO = "bd";
+              return;
             }
-          } catch (e) {}
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+        }
+        if (await intentarApi(CONFIG.API_LOCAL, 2500)) {
+          API = CONFIG.API_LOCAL;
+          MODO = "bd";
+        }
+      }
+      // Si quedó en modo autónomo, reintenta conectar la BD en cada ciclo;
+      // al lograrlo, fuerza re-lectura del Excel para alimentarla.
+      async function reprobar() {
+        if (
+          location.protocol.startsWith("http") &&
+          (await intentarApi(location.origin, 6000))
+        ) {
+          API = location.origin;
+        } else if (await intentarApi(CONFIG.API_LOCAL, 2000)) {
+          API = CONFIG.API_LOCAL;
+        }
+        if (API) {
+          MODO = "bd";
+          META.fp = null;
+          META.dbTs = null;
+          pintarModo();
+        }
+      }
+      function pintarModo() {
+        const chip = document.getElementById("modoChip");
+        if (MODO === "bd") {
+          chip.innerHTML =
+            "<b>● BD SQLite</b> conectada" +
+            (location.protocol.startsWith("http") && API !== location.origin
+              ? " (local)"
+              : "");
+          chip.title =
+            "Los datos se guardan en matriz_qa.db con historial y los ve todo el que abra esta dirección.";
+        } else {
+          chip.innerHTML =
+            "<b style='color:var(--warnTxt)'>⚠ sin conexión a la BD</b> — datos solo en este navegador";
+          chip.title =
+            "Lo que cargues aquí NO lo verán otras personas. El tablero reintenta conectar la base de datos cada minuto.";
         }
       }
       async function apiGet(p) {
@@ -1259,6 +1304,12 @@
             localStorage.tableroToken = t.trim();
             r = await hacer();
           }
+        }
+        if (r.status === 401) {
+          delete localStorage.tableroToken; // token malo: no reutilizarlo
+          throw new Error(
+            "el servidor rechazó el token de carga — pulsa «↻ Actualizar» y escribe el token correcto",
+          );
         }
         if (!r.ok) throw new Error("API " + r.status);
         return r.json();
@@ -2482,6 +2533,7 @@
           sb = document.getElementById("statusbox");
         if (manual) txt.textContent = "Actualizando…";
         try {
+          if (MODO === "solo") await reprobar();
           let cambio = false,
             origen = null;
           const lect = await leerFuente();
@@ -2636,13 +2688,8 @@
       buildCharts();
       (async () => {
         await probeApi();
-        const chip = document.getElementById("modoChip");
+        pintarModo();
         if (MODO === "bd") {
-          chip.innerHTML =
-            "<b>● BD SQLite</b> conectada" +
-            (API !== location.origin ? " (local)" : "");
-          chip.title =
-            "Los datos se guardan en matriz_qa.db con historial. Comparte http://<ip>:8765 con el equipo.";
           try {
             const d = await apiGet("/api/datos");
             if (d.casos.length) {
@@ -2654,9 +2701,6 @@
           } catch (e) {}
           apiGet("/api/historia?dias=90").then(updateHist).catch(() => {});
         } else {
-          chip.textContent = "modo autónomo (sin servidor)";
-          chip.title =
-            "Ejecuta INICIAR_TABLERO.bat para activar la base de datos SQLite con historial.";
           try {
             const c = await idb.get("casos");
             if (c && c.length) {
