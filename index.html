@@ -1653,11 +1653,19 @@
             }
             const o2 = normTxt(get("o2"));
             if (o2) o += (o ? " ⟶ " : "") + "Corrección: " + o2;
+            // Responsable: si hay gestión en las columnas de corrección PRISS
+            // (estado u observación), PRISS participa aunque la columna
+            // RESPONSABLE diga otra cosa o esté vacía.
+            let rVal = normTxt(get("r")).toUpperCase();
+            const corrPriss = !!(e2 || o2);
+            if (corrPriss && !rVal) rVal = "PRISS";
+            else if (corrPriss && !rVal.includes("PRISS"))
+              rVal += " · PRISS";
             out.push({
               a: normTxt(get("a")).toUpperCase() || name.toUpperCase(),
               n: n,
               t: normTipo(tRaw),
-              r: normTxt(get("r")).toUpperCase() || "—",
+              r: rVal || "SIN ASIGNAR",
               e: e2 ? normEstado(e2) : normEstado(e1),
               fp: normFecha(get("fp")),
               fc: normFecha(get("fc")),
@@ -1685,7 +1693,7 @@
 
       function computeDias(data) {
         const hoy = new Date().toISOString().slice(0, 10);
-        for (const d of data)
+        for (const d of data) {
           d.dias =
             d.fp != null
               ? Math.max(
@@ -1693,24 +1701,36 @@
                   Math.round((new Date(d.fc || hoy) - new Date(d.fp)) / 864e5),
                 )
               : null;
+          // responsables individuales: "COPETRAN · PRISS" cuenta para ambos
+          d.rl = String(d.r || "")
+            .split(/·|,|\/|;|&| Y /)
+            .map((s) => s.trim())
+            .map((s) => (s === "—" ? "SIN ASIGNAR" : s))
+            .filter(Boolean);
+          if (!d.rl.length) d.rl = ["SIN ASIGNAR"];
+        }
       }
 
       function resumenPor(F, campo) {
         const g = new Map();
+        // para responsable, un caso compartido cuenta para cada participante
+        const clavesDe = (d) =>
+          campo === "r" ? d.rl || [d.r || "—"] : [d[campo] || "—"];
         for (const d of F) {
-          const k = d[campo] || "—";
-          if (!g.has(k))
-            g.set(k, { k, tot: 0, res: 0, pro: 0, pen: 0, dias: [], old: 0 });
-          const x = g.get(k);
-          x.tot++;
-          if (esResuelto(d)) {
-            x.res++;
-            if (d.fc && d.fp)
-              x.dias.push((new Date(d.fc) - new Date(d.fp)) / 864e5);
-          } else if (esProceso(d)) x.pro++;
-          else {
-            x.pen++;
-            if (d.dias) x.old = Math.max(x.old, d.dias);
+          for (const k of clavesDe(d)) {
+            if (!g.has(k))
+              g.set(k, { k, tot: 0, res: 0, pro: 0, pen: 0, dias: [], old: 0 });
+            const x = g.get(k);
+            x.tot++;
+            if (esResuelto(d)) {
+              x.res++;
+              if (d.fc && d.fp)
+                x.dias.push((new Date(d.fc) - new Date(d.fp)) / 864e5);
+            } else if (esProceso(d)) x.pro++;
+            else {
+              x.pen++;
+              if (d.dias) x.old = Math.max(x.old, d.dias);
+            }
           }
         }
         return [...g.values()].sort((a, b) => b.pen - a.pen || b.tot - a.tot);
@@ -1911,13 +1931,18 @@
           .forEach((m) => m.classList.remove("open")),
       );
 
+      // Un caso pasa el filtro de responsable si CUALQUIERA de sus
+      // participantes está seleccionado ("COPETRAN · PRISS" pasa con PRISS)
+      function pasaResp(d) {
+        return !MS.r.sel.size || (d.rl || [d.r]).some((v) => MS.r.sel.has(v));
+      }
       function filtradosTareas() {
         const tx = document.getElementById("fTxt").value.toLowerCase();
         return DATA.filter(
           (d) =>
             MS.a.pasa(d.a) &&
             MS.t.pasa(d.t) &&
-            MS.r.pasa(d.r) &&
+            pasaResp(d) &&
             MS.e.pasa(d.e) &&
             (!tx || (d.o + " " + d.n + " " + d.p).toLowerCase().includes(tx)),
         );
@@ -2503,9 +2528,7 @@
       // El Panorama se calcula sobre los datos filtrados por responsable
       // (filtro global) — así "PRIS" muestra cómo va PRIS por área.
       function baseGlobal() {
-        return MS.r.sel.size
-          ? DATA.filter((d) => MS.r.pasa(d.r))
-          : DATA;
+        return MS.r.sel.size ? DATA.filter(pasaResp) : DATA;
       }
       function refreshPanorama() {
         AGG = computeAgg(baseGlobal());
@@ -2519,7 +2542,7 @@
         computeDias(DATA);
         MS.a.setOptions(DATA.map((d) => d.a));
         MS.t.setOptions(DATA.map((d) => d.t));
-        MS.r.setOptions(DATA.map((d) => d.r));
+        MS.r.setOptions(DATA.flatMap((d) => d.rl || [d.r]));
         MS.e.setOptions(DATA.map((d) => d.e));
         onFiltersChanged();
         if (origen)
