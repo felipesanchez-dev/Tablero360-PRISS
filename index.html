@@ -301,6 +301,10 @@
         color: var(--txt);
         font-weight: 600;
       }
+      .herofoot .matrizTotal {
+        margin-top: 7px;
+        cursor: help;
+      }
 
       /* ---------- secciones ---------- */
       .secTitle {
@@ -2147,11 +2151,18 @@
           ? `Mostrando solo: <b>${esc([...MS.r.sel].join(", "))}</b>` +
             ` <button class="quitarFiltro" onclick="quitarFiltroResp()">✕ quitar</button> &nbsp;·&nbsp; `
           : "";
+        const totalEjec = DATA.length + PRUEBAS_OK;
+        const pctOk = totalEjec
+          ? Math.round((PRUEBAS_OK / totalEjec) * 100)
+          : 0;
         document.getElementById("heroFoot").innerHTML =
+          `<div>` +
           filtroTxt +
-          `Hoy: <b>+${fmt(A.hoyRep)}</b> reportados · <b>${fmt(A.hoyRes)}</b> resueltos` +
-          ` &nbsp;·&nbsp; <b>${fmt(PRUEBAS_OK)}</b> pruebas sin novedad` +
-          (filtrado ? " (global)" : "");
+          `Hoy: <b>+${fmt(A.hoyRep)}</b> casos reportados · <b>${fmt(A.hoyRes)}</b> resueltos</div>` +
+          `<div class="matrizTotal" title="Suma todas las filas de prueba del Excel: las marcadas 'SIN NOVEDAD' o ejecutadas sin hallazgos (con Nº y OK/fecha, sin columnas de novedad), más las que generaron un caso. Este total es de toda la matriz y no cambia con el filtro de responsable.">` +
+          `📋 <b>Matriz completa:</b> se han ejecutado <b>${fmt(totalEjec)}</b> pruebas en total — ` +
+          `<b style="color:var(--okTxt)">${fmt(PRUEBAS_OK)}</b> pasaron sin novedad (${pctOk}%) y ` +
+          `<b>${fmt(DATA.length)}</b> encontraron algo y son los casos de este tablero</div>`;
 
         // tarjetas de área
         document.getElementById("areasGrid").innerHTML = A.areas
