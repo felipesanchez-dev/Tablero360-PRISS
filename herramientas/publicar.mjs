@@ -44,12 +44,33 @@ const gen = spawnSync(
 if (gen.status !== 0) fallar("No se pudo generar datos.json. No se subió nada.");
 if (!fs.existsSync(DATOS)) fallar("datos.json no quedó escrito. No se subió nada.");
 
-// 3. ¿Cambió algo? Si el Excel es el mismo, no tiene sentido un commit vacío.
-git("add", "--", "datos.json");
-if (git("diff", "--cached", "--quiet", "--", "datos.json").code === 0) {
-  console.log("\n✓ datos.json no cambió respecto a lo publicado. No hay nada que subir.");
-  process.exit(0);
+// 3. ¿Cambiaron los datos de verdad? El sello "generado" es distinto en cada
+//    corrida, así que se compara el contenido sin él: si el Excel es el mismo,
+//    no tiene sentido ensuciar el historial con un commit idéntico.
+function huella(txt) {
+  try {
+    const j = JSON.parse(txt);
+    return JSON.stringify({
+      casos: j.casos,
+      pruebasOk: j.pruebasOk,
+      omitidas: j.omitidas,
+      historia: (j.historia || []).length,
+    });
+  } catch (e) {
+    return null;
+  }
 }
+const publicado = git("show", "HEAD:datos.json");
+if (publicado.code === 0) {
+  const antes = huella(publicado.out);
+  const ahora = huella(fs.readFileSync(DATOS, "utf8"));
+  if (antes && ahora && antes === ahora) {
+    git("checkout", "--", "datos.json"); // dejarlo igual a lo publicado
+    console.log("\n✓ Los datos no cambiaron respecto a lo publicado. No hay nada que subir.");
+    process.exit(0);
+  }
+}
+git("add", "--", "datos.json");
 
 // 4. Traer lo que haya en el remoto antes de subir, para no chocar.
 console.log("→ Sincronizando con el repositorio…");
