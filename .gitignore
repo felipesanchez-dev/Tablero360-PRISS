@@ -7,3 +7,7 @@ matriz_qa.db*
 _backups/
 *.bak-*
 __pycache__/
+
+# Paginas de prueba temporales
+_test.html
+_canal.html

@@ -1015,7 +1015,7 @@
             id="btnPublicar"
             onclick="publicarDatos()"
             style="display: none"
-            title="Genera el datos.json para subir al repositorio: así toda la oficina ve estos mismos datos">
+            title="Sube el dataset a GitHub: en un minuto toda la oficina ve estos mismos datos">
             ⬆ Publicar
           </button>
           <button onclick="cargar(true)">↻ Actualizar</button>
@@ -1261,6 +1261,9 @@
         // Archivos publicados junto a este index.html. El primero que exista manda.
         DATOS_JSON: "datos.json",
         EXCEL_REPO: "matriz.xlsx",
+        // Repositorio al que publica el boton. En GitHub Pages se deduce solo
+        // de la direccion; esto es el respaldo para pruebas en local.
+        REPO: "felipesanchez-dev/Tablero360-PRISS",
       };
 
       /* ---------- utilidades ---------- */
@@ -1310,7 +1313,7 @@
       const ETIQ_MODO = {
         local: [
           "<b>● Excel cargado</b>",
-          "Estás viendo el Excel que acabas de cargar. Pulsa «⬆ Publicar» y sube el datos.json al repositorio para que lo vea toda la oficina. Al recargar la página se vuelve a los datos publicados.",
+          "Estás viendo el Excel que acabas de cargar. Pulsa «⬆ Publicar» y en un minuto lo ve toda la oficina. Al recargar la página se vuelve a los datos publicados.",
         ],
         publicado: [
           "<b>● Datos publicados</b>",
@@ -1367,9 +1370,82 @@
         idb.set("historia", HISTORIA).catch(() => {});
       }
 
-      /* Genera el datos.json que se sube al repositorio. */
-      function publicarDatos() {
-        if (!DATA.length) return;
+      /* ---------- Publicar: sube el dataset a GitHub y ya ----------
+         Arrastras el Excel, pulsas «Publicar» y el propio navegador escribe
+         datos.json en el repositorio con la API de GitHub. GitHub Pages se
+         actualiza sola en cerca de un minuto y toda la oficina ve lo nuevo:
+         nadie tiene que descargar ni subir nada a mano.
+
+         Hace falta un token de GitHub con permiso de escritura en el repo. Se
+         pide UNA vez y se guarda solo en este navegador (localStorage): no
+         viaja al repositorio ni lo ve nadie más que quien publica. */
+
+      /* A qué repositorio se publica. Se deduce de la propia dirección cuando
+         la página está en GitHub Pages, así que sigue funcionando si algún día
+         se renombra o se bifurca el repositorio. */
+      function repoDestino() {
+        const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+        if (m) {
+          const seg = location.pathname.split("/").filter(Boolean)[0];
+          return seg && !/\.html?$/i.test(seg)
+            ? `${m[1]}/${seg}`
+            : `${m[1]}/${m[1]}.github.io`;
+        }
+        return CONFIG.REPO;
+      }
+      function urlPages(repo) {
+        const [duenio, nombre] = repo.split("/");
+        return /\.github\.io$/i.test(nombre)
+          ? `https://${nombre}/`
+          : `https://${duenio}.github.io/${nombre}/`;
+      }
+
+      const TOKEN_KEY = "tableroTokenGH";
+      function pedirToken(repo, forzar) {
+        let t = forzar ? null : localStorage.getItem(TOKEN_KEY);
+        if (t) return t;
+        t = prompt(
+          "Para publicar, este navegador necesita un token de GitHub con permiso " +
+            "de escritura en:\n\n    " +
+            repo +
+            "\n\nCómo crearlo (una sola vez):\n" +
+            "  1. Entra a  github.com/settings/personal-access-tokens/new\n" +
+            "  2. Repository access → Only select repositories → " +
+            repo +
+            "\n  3. Permissions → Repository permissions → Contents: Read and write\n" +
+            "  4. Generate token y copia el valor\n\n" +
+            "Se guarda únicamente en este navegador. Pégalo aquí:",
+        );
+        t = (t || "").trim();
+        if (!t) return null;
+        localStorage.setItem(TOKEN_KEY, t);
+        return t;
+      }
+      function olvidarToken() {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+
+      function aBase64(texto) {
+        const bytes = new TextEncoder().encode(texto);
+        let bin = "";
+        const paso = 0x8000; // por trozos: fromCharCode no aguanta un MB de golpe
+        for (let i = 0; i < bytes.length; i += paso)
+          bin += String.fromCharCode.apply(null, bytes.subarray(i, i + paso));
+        return btoa(bin);
+      }
+      function gh(repo, ruta, token, opciones) {
+        return fetch(`https://api.github.com/repos/${repo}${ruta}`, {
+          ...opciones,
+          cache: "no-store",
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: "Bearer " + token,
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        });
+      }
+
+      function armarPayload() {
         const limpio = DATA.map((d) => {
           const c = {};
           for (const k in d)
@@ -1377,7 +1453,7 @@
               c[k] = d[k];
           return c;
         });
-        const payload = {
+        return {
           generado: new Date().toISOString(),
           origen: META.src || "",
           casos: limpio,
@@ -1385,7 +1461,10 @@
           omitidas: OMITIDAS,
           historia: HISTORIA,
         };
-        const blob = new Blob([JSON.stringify(payload)], {
+      }
+      /* Salida de emergencia: si GitHub falla, al menos que se pueda bajar. */
+      function descargarDatos() {
+        const blob = new Blob([JSON.stringify(armarPayload())], {
           type: "application/json",
         });
         const url = URL.createObjectURL(blob);
@@ -1394,13 +1473,98 @@
         a.download = "datos.json";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+
+      let publicando = false;
+      async function publicarDatos() {
+        if (!DATA.length || publicando) return;
         const sb = document.getElementById("statusbox");
-        sb.className = "statusbox ok";
+        const btn = document.getElementById("btnPublicar");
+        const repo = repoDestino();
+        let token = pedirToken(repo, false);
+        if (!token) return;
+
+        const c = contar(DATA);
+        const texto = JSON.stringify(armarPayload());
+        const mensaje =
+          `Datos del ${HOY}: ${DATA.length} casos · ` +
+          `${c.pctEnt}% entregado · ${c.pctCerr}% validado`;
+
+        publicando = true;
+        let authFallo = false;
+        btn.disabled = true;
+        const rotulo = btn.textContent;
+        btn.textContent = "⬆ Publicando…";
+        sb.className = "statusbox";
         sb.dataset.tipo = "publicar";
-        sb.innerHTML =
-          `✅ <b>datos.json</b> generado con ${fmt(DATA.length)} casos. ` +
-          `Súbelo a la raíz del repositorio (reemplazando el anterior) y GitHub Pages ` +
-          `mostrará estos datos a toda la oficina.`;
+        sb.textContent = "Subiendo el dataset a GitHub…";
+        try {
+          for (let intento = 1; intento <= 3; intento++) {
+            // El sha actual sale del listado de la carpeta, que no descarga el
+            // archivo (la API no devuelve contenido de archivos de más de 1 MB).
+            let sha = null;
+            const lista = await gh(repo, "/contents", token);
+            if (lista.status === 401 || lista.status === 403) {
+              authFallo = true;
+              olvidarToken();
+              token = pedirToken(repo, true);
+              if (!token) throw new Error("Publicación cancelada: falta el token.");
+              continue;
+            }
+            if (lista.ok) {
+              const f = (await lista.json()).find((x) => x.name === "datos.json");
+              if (f) sha = f.sha;
+            } else if (lista.status === 404) {
+              throw new Error(
+                `No encuentro el repositorio ${repo}. Revisa el nombre o el acceso del token.`,
+              );
+            }
+
+            const r = await gh(repo, "/contents/datos.json", token, {
+              method: "PUT",
+              body: JSON.stringify({
+                message: mensaje,
+                content: aBase64(texto),
+                ...(sha ? { sha } : {}),
+              }),
+            });
+            if (r.status === 401 || r.status === 403) {
+              authFallo = true;
+              olvidarToken();
+              token = pedirToken(repo, true);
+              if (!token) throw new Error("Publicación cancelada: falta el token.");
+              continue;
+            }
+            if (r.status === 409 || r.status === 422) continue; // sha viejo: reintentar
+            if (!r.ok) {
+              let detalle = "";
+              try {
+                detalle = (await r.json()).message || "";
+              } catch (e) {}
+              throw new Error(`GitHub respondió ${r.status}. ${detalle}`);
+            }
+            sb.className = "statusbox ok";
+            sb.innerHTML =
+              `✅ <b>Publicado</b>: ${fmt(DATA.length)} casos · ${c.pctEnt}% entregado · ` +
+              `${c.pctCerr}% validado. La oficina lo verá en un minuto en ` +
+              `<a href="${esc(urlPages(repo))}" target="_blank" rel="noopener" style="color:inherit">${esc(urlPages(repo))}</a>`;
+            return;
+          }
+          throw new Error("GitHub rechazó la subida tras varios intentos.");
+        } catch (e) {
+          // Si el rechazo fue de credencial, no dejar guardado un token que ya
+          // sabemos que no sirve: el próximo intento debe volver a pedirlo.
+          if (authFallo) olvidarToken();
+          sb.className = "statusbox err";
+          sb.innerHTML =
+            `✖ No se pudo publicar: ${esc(e.message)} ` +
+            `<button onclick="descargarDatos()" style="padding:3px 10px;margin-left:8px">⬇ Descargar datos.json</button>` +
+            `<button onclick="olvidarToken();publicarDatos()" style="padding:3px 10px;margin-left:6px">Cambiar el token</button>`;
+        } finally {
+          publicando = false;
+          btn.disabled = false;
+          btn.textContent = rotulo;
+        }
       }
 
       /* ---------- almacenamiento del navegador ---------- */

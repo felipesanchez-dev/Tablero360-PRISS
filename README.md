@@ -47,8 +47,8 @@ descarga un `datos.json`, y lo arrastras a la página del repositorio en GitHub
 
 El tablero lee, en este orden:
 
-1. **El Excel de tu equipo**, si lo conectas con **📂 Excel local**. Se relee
-   solo cada minuto: si guardas el Excel, el tablero se actualiza.
+1. **El Excel que cargues** con **📂 Cargar Excel** (o arrastrándolo a la
+   página). Vale solo para esa pestaña: al recargar se vuelve a lo publicado.
 2. **`datos.json`** publicado en el repositorio — esto es lo que ve todo el que
    abra la dirección de GitHub Pages.
 3. **`matriz.xlsx`**, si prefieres subir el Excel crudo al repositorio.
@@ -114,6 +114,5 @@ de mostrar «ERROR».
 
 ## Requisitos del navegador
 
-Cualquier navegador moderno. Conectar el Excel local usa la File System Access
-API (Chrome/Edge); en el resto funciona igual con el selector de archivos o
-arrastrando el `.xlsx` a la página.
+Cualquier navegador moderno. El Excel se elige con el selector de archivos o
+arrastrándolo a la página; no se usa ninguna API especial.
