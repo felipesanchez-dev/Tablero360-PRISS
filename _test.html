@@ -994,7 +994,26 @@
         }
       }
     </style>
-  </head>
+  <script>
+window.__err=[];
+addEventListener("error",e=>window.__err.push("ERROR: "+e.message+" @"+e.lineno));
+addEventListener("unhandledrejection",e=>window.__err.push("REJECT: "+((e.reason&&e.reason.message)||e.reason)));
+const diag = (etapa) => { let d=document.getElementById("__diag"); if(!d){d=document.createElement("div");d.id="__diag";document.body.appendChild(d);}
+  d.textContent += " ||| ["+etapa+"] modo="+document.getElementById("modoChip").textContent
+    +" · pct="+document.getElementById("heroPct").textContent
+    +" · casos="+document.getElementById("hResSub").textContent
+    +" · aviso="+(document.getElementById("statusbox").textContent||"(ninguno)")
+    +" · src="+document.getElementById("srcInfo").textContent
+    +" · errs="+JSON.stringify(window.__err); };
+setTimeout(()=>diag("al abrir"), 12000);
+setTimeout(async ()=>{
+  const r = await fetch("/matriz-test.xlsx");
+  const b = await r.arrayBuffer();
+  await usarArchivo(new File([b], "Matriz de Casos de Prueba.xlsx"));
+}, 14000);
+setTimeout(()=>diag("tras cargar Excel"), 40000);
+</script>
+</head>
   <body>
     <div class="wrap">
       <header class="topbar">
