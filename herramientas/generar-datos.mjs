@@ -15,13 +15,42 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const XLSX_PATH = process.argv[2] || path.join(RAIZ, "Matriz de Casos de Prueba.xlsx");
 const SALIDA = process.argv[3] || path.join(RAIZ, "datos.json");
 
-if (!fs.existsSync(XLSX_PATH)) {
-  console.error(`No encontré el Excel: ${XLSX_PATH}`);
+/* Si no se pasa la ruta, busca el Excel más reciente: primero en la carpeta del
+   tablero y luego en Descargas, que es donde suele quedar al bajarlo. */
+function buscarExcel() {
+  const candidatos = [];
+  const mirar = (dir, filtro) => {
+    try {
+      for (const f of fs.readdirSync(dir)) {
+        if (!/\.xlsm?x?$/i.test(f) || f.startsWith("~$")) continue;
+        if (filtro && !filtro.test(f)) continue;
+        const completo = path.join(dir, f);
+        candidatos.push({ completo, mtime: fs.statSync(completo).mtimeMs });
+      }
+    } catch (e) {}
+  };
+  mirar(RAIZ, null);
+  const desc = path.join(process.env.USERPROFILE || process.env.HOME || "", "Downloads");
+  mirar(desc, /matriz/i);
+  candidatos.sort((a, b) => b.mtime - a.mtime);
+  return candidatos.length ? candidatos[0].completo : null;
+}
+
+const XLSX_PATH = process.argv[2] || buscarExcel();
+
+if (!XLSX_PATH || !fs.existsSync(XLSX_PATH)) {
+  console.error(
+    [
+      "No encontré el Excel.",
+      "  Déjalo en la carpeta del tablero, o en Descargas con 'matriz' en el nombre,",
+      "  o pásame la ruta:  node herramientas/generar-datos.mjs \"ruta\\al\\archivo.xlsx\"",
+    ].join("\n"),
+  );
   process.exit(1);
 }
+if (!process.argv[2]) console.log(`  usando: ${XLSX_PATH}`);
 
 const html = fs.readFileSync(path.join(RAIZ, "index.html"), "utf8");
 const script = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
