@@ -1,2 +1,15 @@
+# La matriz de Copetran NO se publica: este repositorio es publico y GitHub
+# Pages no pide contrasena. El tablero funciona conectando el Excel con
+# "Excel local". Si algun dia quieres que la oficina lo vea sin tener el Excel,
+# quita esta linea y sube el datos.json que genera el boton "Publicar".
+datos.json
+
+# El Excel de 19 MB tampoco: pesa y lleva los mismos datos.
+Matriz de Casos de Prueba.xlsx
+matriz.xlsx
+
+# Base de datos del servidor viejo (tiene datos de Copetran) y respaldos locales
 matriz_qa.db*
+_backups/
+*.bak-*
 __pycache__/

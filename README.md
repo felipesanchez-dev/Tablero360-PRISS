@@ -1,56 +1,120 @@
 # Tablero QA — Matriz de Casos de Prueba (Copetran 360)
 
-Tablero en vivo de la Matriz de Casos de Prueba con base de datos **SQLite**
-(historial de cambios de estado + snapshots por área) y vista por áreas,
-responsables y tipos de novedad.
+Página **100 % estática**: HTML + JavaScript, sin servidor, sin Python y sin
+base de datos. Se publica tal cual en **GitHub Pages** y funciona desde
+cualquier equipo de la oficina.
 
-## Cómo funciona
+```
+index.html          el tablero completo (todo el código está aquí)
+vendor/             SheetJS y Chart.js servidos desde el repo (sin CDN externo)
+herramientas/       generador opcional de datos.json por línea de comandos
+.nojekyll           para que GitHub Pages publique la carpeta tal cual
+_legacy-python/     el servidor Python y la BD SQLite anteriores (ya no se usan)
+```
 
-- **`index.html`** — el tablero. Parsea el Excel de la matriz en el navegador
-  (botón «📂 Excel local» o arrastrando el .xlsx) y lo empuja al servidor.
-- **`servidor.py`** — servidor (solo librería estándar de Python). Guarda todo
-  en `matriz_qa.db`: casos (upsert), historial de cambios de estado, snapshots
-  por área y registro de cargas. Sirve el tablero y una API JSON.
-- Quien abre el tablero **no necesita el Excel**: ve lo que está en la base.
-  Si el servidor no está disponible, el tablero funciona en modo autónomo.
+## Publicarlo en GitHub Pages
 
-## Uso local / oficina
+1. Sube esta carpeta a un repositorio.
+2. **Settings → Pages → Source: Deploy from a branch**, rama `main`, carpeta `/ (root)`.
+3. Listo. La dirección queda como `https://<usuario>.github.io/<repo>/`.
 
-Doble clic en `INICIAR_TABLERO.bat` (o `python servidor.py`). Queda en
-`http://127.0.0.1:8765` y para la red local en `http://<ip-del-pc>:8765`
-(abrir el puerto: `netsh advfirewall firewall add rule name="Tablero QA"
-dir=in action=allow protocol=TCP localport=8765`).
+No hay nada que instalar ni que dejar corriendo.
 
-## Despliegue gratis en Render (para acceso desde internet)
+## Los datos NO están en este repositorio
 
-1. Entrar a [render.com](https://render.com) e iniciar sesión con GitHub.
-2. **New → Web Service** → elegir este repositorio (`Matrizcarga360`).
-3. Render lee `render.yaml` automáticamente (plan **Free**). Si pide datos:
-   runtime *Python*, start command `python servidor.py --no-abrir`.
-4. (Recomendado) En *Environment* definir `TABLERO_TOKEN` con una clave
-   cualquiera: los espectadores ven todo, pero solo quien tenga el token
-   puede subir datos (el tablero lo pide una sola vez y lo recuerda).
-5. Abrir la URL que entrega Render (`https://tablero-qa-XXXX.onrender.com`),
-   conectar el Excel con «📂 Excel local» una vez, y compartir la URL.
+Este repo es **público** y GitHub Pages no pide contraseña, así que la matriz de
+Copetran (descripciones de fallos, responsables, fechas) **no se sube**:
+`datos.json` está en el `.gitignore` a propósito.
 
-Notas del plan gratuito: el servicio **se duerme tras ~15 min sin visitas**
-(la primera visita después tarda ~1 min en despertar) y el disco es efímero —
-si Render reinicia, la base se vacía, pero el tablero la **repuebla solo**
-en cuanto quien tiene el Excel conectado vuelva a abrir la página (el
-historial de snapshots sí se pierde). Para historial permanente: correrlo en
-la oficina o usar un plan con disco persistente.
+Para usar el tablero, abre la página y conecta el Excel con **📂 Excel local**
+(o arrastra el `.xlsx` encima). Los datos se quedan en tu equipo.
 
-## API
+> Si algún día quieres que la oficina lo vea sin tener el Excel, quita
+> `datos.json` del `.gitignore` y súbelo — pero ten en cuenta que entonces
+> queda visible para cualquiera en internet. La alternativa es repo privado +
+> GitHub Pages, que exige cuenta Pro/Team.
 
-- `GET /api/estado` — salud y última carga
-- `GET /api/datos` — casos activos + pruebas OK
-- `GET /api/historia?dias=90` — snapshots globales (tendencia medida)
-- `POST /api/cargar` — upsert de casos (exige `X-Token` si `TABLERO_TOKEN` está definido)
-- `GET /db` — descarga la base `matriz_qa.db` para compartir/respaldar
+## Cómo se actualizan los datos
 
-## Nota
+El tablero lee, en este orden:
 
-El vínculo de SharePoint del Excel exige inicio de sesión (no es anónimo),
-por eso la fuente es el Excel local. Si TIC crea un vínculo "Cualquier
-persona con el vínculo", pegarlo en `CONFIG.SHARE_LINK` de `index.html` y el
-tablero se alimentará solo, sin archivo local.
+1. **El Excel de tu equipo**, si lo conectas con **📂 Excel local**. Se relee
+   solo cada minuto: si guardas el Excel, el tablero se actualiza.
+2. **`datos.json`**, si decides publicarlo en el repositorio — sería lo que
+   vería todo el que abra la dirección de GitHub Pages (hoy no está subido).
+3. **`matriz.xlsx`**, si prefieres subir el Excel crudo al repositorio.
+
+### Si decides publicar los datos
+
+1. Abre el tablero y conecta el Excel con **📂 Excel local**.
+2. Pulsa **⬆ Publicar**: se descarga un `datos.json`.
+3. Sube ese `datos.json` a la raíz del repositorio (reemplazando el anterior).
+
+También puedes generarlo desde la terminal, sin abrir el navegador:
+
+```bash
+node herramientas/generar-datos.mjs "Matriz de Casos de Prueba.xlsx"
+```
+
+Esa herramienta **no duplica la lógica**: extrae el parser del propio
+`index.html`, así que nunca puede quedar desincronizada del tablero.
+
+## Cómo se calcula el avance
+
+La matriz lleva **dos estados por caso** y hay que mirar los dos:
+
+| Columna del Excel | Quién la llena | Qué significa |
+|---|---|---|
+| `ESTADO DE NOVEDAD` | Copetran | reporta la novedad y, al final, la valida |
+| `ESTADO DE CORRECCIÓN PRISS` | PRISS | corrige y entrega |
+
+De ahí salen cinco estados:
+
+| Estado | Cuándo | De quién es la pelota |
+|---|---|---|
+| **PENDIENTE** | reportada, PRISS no ha respondido | PRISS |
+| **EN PROCESO** | PRISS: `EN DESARROLLO` | PRISS |
+| **ESPERA INFO** | PRISS: `PENDIENTE INFORMACIÓN` | Copetran |
+| **POR VALIDAR** | PRISS: `RESUELTA`, Copetran aún no valida | Copetran |
+| **RESUELTO** | Copetran: `RESUELTA` | cerrado |
+
+Y dos porcentajes, porque no son lo mismo:
+
+- **Entregado** = (POR VALIDAR + RESUELTO) / total — lo que PRISS ya sacó.
+- **Validado** = RESUELTO / total — lo que Copetran ya dio por bueno.
+
+El anillo muestra los dos: el arco tenue es lo entregado, el sólido lo validado.
+La diferencia entre ambos es el trabajo entregado que espera validación.
+
+> El anillo **no** se recalcula con el filtro de Estado: si lo hiciera, elegir
+> «Sin atender» dejaría el avance en 0 % por definición.
+
+## Filtros
+
+Los cinco filtros de la barra superior — **Responsable, Área, Módulo, Tipo y
+Estado** — mandan sobre **todo** el tablero: Panorama y Tareas por igual. Se
+guardan en el navegador, así que sobreviven a un F5.
+
+Los chips de cada tarjeta de área (`falta entregar: …`) cuentan **solo lo que
+PRISS todavía no ha entregado**. Por eso un área sin errores por entregar deja
+de mostrar «ERROR».
+
+## Avisos que puede dar el tablero
+
+- **«No se pudieron leer estas hojas»** — una hoja del Excel no se pudo abrir.
+  Casi siempre es porque tiene formato aplicado a un millón de filas vacías:
+  ábrela, selecciona las filas sobrantes, bórralas y vuelve a guardar.
+- **«N sin clasificar en la matriz»** — filas con un hallazgo escrito en
+  OBSERVACIONES a las que nadie les puso tipo ni estado. Aparecen como
+  `SIN CLASIFICAR` para que no se pierdan.
+- **«N entregas sin fecha»** — casos entregados sin `FECHA DE CORRECCIÓN`: no
+  se pueden medir, y por eso el promedio de días dice sobre cuántos casos está
+  calculado.
+- **«N casos sin responsable quedan fuera»** — al filtrar por responsable, las
+  filas sin `RESPONSABLE` en el Excel desaparecerían sin avisar.
+
+## Requisitos del navegador
+
+Cualquier navegador moderno. Conectar el Excel local usa la File System Access
+API (Chrome/Edge); en el resto funciona igual con el selector de archivos o
+arrastrando el `.xlsx` a la página.
