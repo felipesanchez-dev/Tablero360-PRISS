@@ -6,6 +6,7 @@ cualquier equipo de la oficina.
 
 ```
 index.html          el tablero completo (todo el código está aquí)
+datos.json          la foto de la matriz que ve la oficina   ← esto se actualiza
 vendor/             SheetJS y Chart.js servidos desde el repo (sin CDN externo)
 herramientas/       generador opcional de datos.json por línea de comandos
 .nojekyll           para que GitHub Pages publique la carpeta tal cual
@@ -20,19 +21,27 @@ _legacy-python/     el servidor Python y la BD SQLite anteriores (ya no se usan)
 
 No hay nada que instalar ni que dejar corriendo.
 
-## Los datos NO están en este repositorio
+## Actualizar el tablero para toda la oficina
 
-Este repo es **público** y GitHub Pages no pide contraseña, así que la matriz de
-Copetran (descripciones de fallos, responsables, fechas) **no se sube**:
-`datos.json` está en el `.gitignore` a propósito.
+Tú cargas el Excel, publicas, y todos ven lo mismo. Un solo comando:
 
-Para usar el tablero, abre la página y conecta el Excel con **📂 Excel local**
-(o arrastra el `.xlsx` encima). Los datos se quedan en tu equipo.
+```bash
+node herramientas/publicar.mjs "Matriz de Casos de Prueba.xlsx"
+```
 
-> Si algún día quieres que la oficina lo vea sin tener el Excel, quita
-> `datos.json` del `.gitignore` y súbelo — pero ten en cuenta que entonces
-> queda visible para cualquiera en internet. La alternativa es repo privado +
-> GitHub Pages, que exige cuenta Pro/Team.
+(o doble clic en **`PUBLICAR.bat`**, que hace lo mismo)
+
+Regenera `datos.json` desde el Excel y lo sube al repositorio. GitHub Pages se
+actualiza solo en un par de minutos y el tablero de todos muestra los datos
+nuevos — nadie más necesita el Excel.
+
+Si prefieres no usar la terminal: pulsa **⬆ Publicar** en el tablero, se te
+descarga un `datos.json`, y lo arrastras a la página del repositorio en GitHub
+(*Add file → Upload files*) reemplazando el anterior.
+
+> Ten presente que el repositorio es **público**: cualquiera con la dirección ve
+> la matriz. Si eso no sirve, la alternativa es repo privado + GitHub Pages,
+> que exige cuenta Pro/Team.
 
 ## Cómo se actualizan los datos
 
@@ -40,24 +49,14 @@ El tablero lee, en este orden:
 
 1. **El Excel de tu equipo**, si lo conectas con **📂 Excel local**. Se relee
    solo cada minuto: si guardas el Excel, el tablero se actualiza.
-2. **`datos.json`**, si decides publicarlo en el repositorio — sería lo que
-   vería todo el que abra la dirección de GitHub Pages (hoy no está subido).
+2. **`datos.json`** publicado en el repositorio — esto es lo que ve todo el que
+   abra la dirección de GitHub Pages.
 3. **`matriz.xlsx`**, si prefieres subir el Excel crudo al repositorio.
 
-### Si decides publicar los datos
-
-1. Abre el tablero y conecta el Excel con **📂 Excel local**.
-2. Pulsa **⬆ Publicar**: se descarga un `datos.json`.
-3. Sube ese `datos.json` a la raíz del repositorio (reemplazando el anterior).
-
-También puedes generarlo desde la terminal, sin abrir el navegador:
-
-```bash
-node herramientas/generar-datos.mjs "Matriz de Casos de Prueba.xlsx"
-```
-
-Esa herramienta **no duplica la lógica**: extrae el parser del propio
-`index.html`, así que nunca puede quedar desincronizada del tablero.
+`herramientas/generar-datos.mjs` solo regenera el archivo, sin subirlo;
+`herramientas/publicar.mjs` lo regenera **y** lo sube. Ninguna de las dos
+duplica la lógica: extraen el parser del propio `index.html`, así que nunca
+pueden quedar desincronizadas del tablero.
 
 ## Cómo se calcula el avance
 
