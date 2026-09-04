@@ -15,7 +15,9 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DATOS = path.join(RAIZ, "datos.json");
 
 function git(...args) {
-  const r = spawnSync("git", args, { cwd: RAIZ, encoding: "utf8" });
+  // maxBuffer generoso: "git show HEAD:datos.json" pasa del megabyte y el
+  // límite por defecto de spawnSync lo cortaría a la mitad.
+  const r = spawnSync("git", args, { cwd: RAIZ, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   if (r.error) throw r.error;
   return { code: r.status, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
 }
