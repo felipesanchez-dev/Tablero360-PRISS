@@ -1702,7 +1702,7 @@
              los dos, perdiendo 413 validaciones de Copetran.
          Cada columna se asigna a una sola clave. */
       const COLMAP = [
-        { k: "n",     pos: [/^n[ºo°]?\.?\s*(de\s*)?(prueba|caso)s?$/i, /^(id|consecutivo|c[oó]digo|caso)$/i] },
+        { k: "n",     pos: [/^n[ºo°]?\.?\s*(de\s*)?(prueba|caso)s?$/i, /^id\s*(de\s*)?(la\s*)?(prueba|caso)s?$/i, /^(id|consecutivo|c[oó]digo|caso)$/i] },
         { k: "a",     pos: [/^oficina\s+(respo|repo)\w*\s+de\s+la\s+prueba/i, /^oficina\s+(respo|repo)/i, /^(área|area)$/i, /^oficina$/i] },
         { k: "mod",   pos: [/^m[oó]dulo/i] },
         { k: "sub",   pos: [/^subm[oó]dulo/i] },
@@ -1888,7 +1888,20 @@
         const out = [];
         const omitidas = [];
         let pruebasOk = 0;
-        for (const name of wb.SheetNames) {
+        /* "Base Consolidada" es una FOTO de las hojas de área: sus 21.749 filas
+           son los MISMOS casos (CN74, CI1…) con el estado del día en que se
+           consolidó. Contarla aparte duplicaba cada caso y revivía estados ya
+           cerrados —de ahí los 7 "sin atender" de CARTERA NACIONAL, que en su
+           hoja dicen RESUELTA—. Manda la hoja del área, que es la que el equipo
+           mantiene; de la consolidada solo entran los casos que no estén en
+           ninguna hoja (hoy, 2). Por eso se lee de última. */
+        const esConsolidada = (nm) => /CONSOLIDAD/.test(canonTxt(nm));
+        const hojasEnOrden = [...wb.SheetNames].sort(
+          (x, y) => (esConsolidada(x) ? 1 : 0) - (esConsolidada(y) ? 1 : 0),
+        );
+        const idsDeArea = new Set();
+        let duplicados = 0;
+        for (const name of hojasEnOrden) {
           const ws = wb.Sheets[name];
           if (!ws) {
             // SheetJS no pudo con esta hoja: avisarlo, nunca perderla en silencio.
@@ -1937,6 +1950,7 @@
             continue;
           }
           const hoja = canonTxt(name);
+          const consolidada = esConsolidada(name);
           for (let i = hIdx + 1; i < rows.length; i++) {
             const row = rows[i] || [];
             const get = (k) => (map[k] !== undefined ? row[map[k]] : null);
@@ -1944,6 +1958,13 @@
               ecRaw = normTxt(get("ec")),
               epRaw = normTxt(get("ep")),
               oki = normTxt(get("ok"));
+            // El caso ya viene de su hoja de área: esta copia no se cuenta.
+            const idCaso = n.toUpperCase();
+            if (consolidada && idCaso && idsDeArea.has(idCaso)) {
+              duplicados++;
+              continue;
+            }
+            if (!consolidada && idCaso) idsDeArea.add(idCaso);
             let tRaw = normTxt(get("t"));
             if (!tRaw && normTxt(get("tX"))) tRaw = "ERRORES";
             let o = normTxt(get("o"));
@@ -2020,7 +2041,11 @@
         for (const d of out)
           if (modulos.has(d.a) || submods.has(d.a))
             d.a = dominante[d.hoja] || d.hoja;
-        return { casos: out, pruebasOk, omitidas };
+        if (duplicados)
+          console.info(
+            `Tablero: ${duplicados} filas de la hoja consolidada se ignoraron por estar ya en su hoja de área.`,
+          );
+        return { casos: out, pruebasOk, omitidas, duplicados };
       }
 
       /* ---------- Estado de la app ---------- */
